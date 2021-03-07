@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script type="text/javascript" src='strategies.js'> </script>
+    <script type="text/javascript" src='methodoku.js'> </script>
+</head>
+<style>
+table, th, td {
+  border: 1px solid black;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 3px;
+}
+</style><body>
+
+<input type = "button" onclick = "loadInitialGrid()" value = "Load puzzle">  
+<input type = "button" onclick = "solveGrid()" value = "Solve">  
+<input type = "button" onclick = "takeStep()" value = "Take step">  
+
+<br>
+<br>
+
+<table id="grid">
+</table>
+
+<script>buildGrid(13,6);</script>
+
+</body>
+</html>
