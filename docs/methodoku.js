@@ -10,9 +10,7 @@ function copyGrid(orig_board) {
 }
 
 
-// A gameArr is an array of 9 rows x 9 elements.
-// This is also the layout of rows.
-function veryeasyGameArr() {
+function simplePuzzle() {
   return [
     [1,2,3,4],
     [0,1,0,3],
@@ -64,10 +62,49 @@ function updateGrid(board, rebuild=false) {
 
   var myElement = document.getElementById("grid");
   for(var i=0; i<board.length; i++)
-      for(var j=0; j<board[0].length; j++)
+    for(var j=0; j<board[0].length; j++)
+    if(Array.isArray(board[i][j]))
+    {
+      var tbl = document.getElementById("options" + i + j);
+
+      var numRows = board[0].length > 6 ? 3 : 2;
+      var numCols = Math.ceil(board[0].length / numRows);
+
+      if (!tbl)
       {
-          grid.rows[i].cells[j].innerHTML = board[i][j];
+        var tbl = document.createElement('table');
+        tbl.setAttribute("id", "options" + i + j);
+        grid.rows[i].cells[j].append(tbl);        
+
+        for(var r=0; r < numRows; r++)
+        {
+          var row = tbl.insertRow(r);
+          for(var c=0; c < numCols; c++)
+          { 
+            var cell = row.insertCell();
+          }
+        }
       }
+      
+      for(var r=0; r < numRows; r++)
+        for(var c=0; c < numCols; c++)
+        { 
+          var bell = r * numCols + c + 1;
+          if(board[i][j].indexOf(bell) > -1)
+            tbl.rows[r].cells[c].innerHTML = bell;
+          else
+          {
+            if(tbl.rows[r].cells[c].innerText == bell && tbl.rows[r].cells[c].style.color == "")
+            {
+              tbl.rows[r].cells[c].style.color = "#D3D3D3";;
+            }
+            else
+              tbl.rows[r].cells[c].innerHTML = "";
+          }
+        }
+    }
+    else
+      grid.rows[i].cells[j].innerHTML = board[i][j];
 }
 
 function buildGrid(rows, cols) {
@@ -83,9 +120,7 @@ function buildGrid(rows, cols) {
       {
         var cell = row.insertCell(j);
         
-        if(i>0)
-          cell.innerHTML = 0;
-        else
+        if(i == 0)
           cell.innerHTML = num2bell(j+1);
       }
   }
@@ -108,7 +143,7 @@ var puzzle = [];
 var start = [];
 
 function loadInitialGrid() {
-  start = veryeasyGameArr();
+  start = simplePuzzle();
   buildPuzzle();
   updateGrid(puzzle, true)
 }
@@ -125,7 +160,7 @@ function takeStep() {
       if (isChanged)
       {
         console.log("Success using: " + strategies[idx].constructor.name)
-        break        
+        break
       }
     }
 
