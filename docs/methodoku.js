@@ -63,48 +63,70 @@ function updateGrid(board, rebuild=false) {
   var myElement = document.getElementById("grid");
   for(var i=0; i<board.length; i++)
     for(var j=0; j<board[0].length; j++)
-    if(Array.isArray(board[i][j]))
     {
       var tbl = document.getElementById("options" + i + j);
 
       var numRows = board[0].length > 6 ? 3 : 2;
       var numCols = Math.ceil(board[0].length / numRows);
 
-      if (!tbl)
-      {
-        var tbl = document.createElement('table');
-        tbl.setAttribute("id", "options" + i + j);
-        grid.rows[i].cells[j].append(tbl);        
+      var impossibleColour = "#D3D3D3";
+      var countPossibilitiesPrevious = 0;
 
-        for(var r=0; r < numRows; r++)
+      if(!tbl)
+      {
+        if(Array.isArray(board[i][j]))
         {
-          var row = tbl.insertRow(r);
-          for(var c=0; c < numCols; c++)
-          { 
-            var cell = row.insertCell();
+          var tbl = document.createElement('table');
+          tbl.setAttribute("id", "options" + i + j);
+          grid.rows[i].cells[j].append(tbl);
+
+          for(var r=0; r < numRows; r++)
+          {
+            var row = tbl.insertRow(r);
+            for(var c=0; c < numCols; c++)
+            { 
+              var cell = row.insertCell();
+            }
           }
+          
+          countPossibilitiesPrevious = board[i][j].length;
         }
+        else
+          countPossibilitiesPrevious = 1;
+      }
+      else
+      {
+        for(var r=0; r < numRows; r++)
+          for(var c=0; c < numCols; c++)
+            if(tbl.rows[r].cells[c].innerHTML.length > 0 && tbl.rows[r].cells[c].style.color != impossibleColour)
+              countPossibilitiesPrevious++;
       }
       
-      for(var r=0; r < numRows; r++)
-        for(var c=0; c < numCols; c++)
-        { 
-          var bell = r * numCols + c + 1;
-          if(board[i][j].indexOf(bell) > -1)
-            tbl.rows[r].cells[c].innerHTML = bell;
-          else
-          {
-            if(tbl.rows[r].cells[c].innerText == bell && tbl.rows[r].cells[c].style.color == "")
-            {
-              tbl.rows[r].cells[c].style.color = "#D3D3D3";;
-            }
+      if(countPossibilitiesPrevious > 1)
+      {
+        for(var r=0; r < numRows; r++)
+          for(var c=0; c < numCols; c++)
+          { 
+            var bell = r * numCols + c + 1;
+            if(board[i][j] == bell || Array.isArray(board[i][j]) && board[i][j].indexOf(bell) > -1)
+              tbl.rows[r].cells[c].innerHTML = bell;
             else
-              tbl.rows[r].cells[c].innerHTML = "";
+            {
+              if(tbl.rows[r].cells[c].innerText == bell)
+              {
+                if(tbl.rows[r].cells[c].style.color == "")
+                {
+                  tbl.rows[r].cells[c].style.color = impossibleColour;
+                }
+                else
+                  tbl.rows[r].cells[c].innerHTML = "";
+              }
+            }
           }
-        }
+      }
+      else
+        grid.rows[i].cells[j].innerHTML = board[i][j];
     }
-    else
-      grid.rows[i].cells[j].innerHTML = board[i][j];
 }
 
 function buildGrid(rows, cols) {
