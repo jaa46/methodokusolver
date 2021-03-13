@@ -56,7 +56,7 @@ for(var row = 0; row < start.length; row++)
 }
 }
 
-function updateGrid(board, rebuild=false) {
+function updateGrid(board, rebuild=false, showPossibilities=false) {
   if(rebuild)
     buildGrid(board.length, board[0].length);
 
@@ -72,60 +72,74 @@ function updateGrid(board, rebuild=false) {
       var impossibleColour = "#D3D3D3";
       var countPossibilitiesPrevious = 0;
 
-      if(!tbl)
+      if(showPossibilities)
       {
-        if(Array.isArray(board[i][j]))
+        if(!tbl)
         {
-          var tbl = document.createElement('table');
-          tbl.setAttribute("id", "options" + i + j);
-          grid.rows[i].cells[j].append(tbl);
-
-          for(var r=0; r < numRows; r++)
+          if(Array.isArray(board[i][j]))
           {
-            var row = tbl.insertRow(r);
-            for(var c=0; c < numCols; c++)
-            { 
-              var cell = row.insertCell();
-            }
-          }
-          
-          countPossibilitiesPrevious = board[i][j].length;
-        }
-        else
-          countPossibilitiesPrevious = 1;
-      }
-      else
-      {
-        for(var r=0; r < numRows; r++)
-          for(var c=0; c < numCols; c++)
-            if(tbl.rows[r].cells[c].innerHTML.length > 0 && tbl.rows[r].cells[c].style.color != impossibleColour)
-              countPossibilitiesPrevious++;
-      }
-      
-      if(countPossibilitiesPrevious > 1)
-      {
-        for(var r=0; r < numRows; r++)
-          for(var c=0; c < numCols; c++)
-          { 
-            var bell = r * numCols + c + 1;
-            if(board[i][j] == bell || Array.isArray(board[i][j]) && board[i][j].indexOf(bell) > -1)
-              tbl.rows[r].cells[c].innerHTML = bell;
-            else
+            var tbl = document.createElement('table');
+            tbl.setAttribute("id", "options" + i + j);
+            grid.rows[i].cells[j].append(tbl);
+
+            for(var r=0; r < numRows; r++)
             {
-              if(tbl.rows[r].cells[c].innerText == bell)
-              {
-                if(tbl.rows[r].cells[c].style.color == "")
-                {
-                  tbl.rows[r].cells[c].style.color = impossibleColour;
-                }
-                else
-                  tbl.rows[r].cells[c].innerHTML = "";
+              var row = tbl.insertRow(r);
+              for(var c=0; c < numCols; c++)
+              { 
+                var cell = row.insertCell();
               }
             }
+            
+            countPossibilitiesPrevious = board[i][j].length;
           }
+          else
+            countPossibilitiesPrevious = 1;
+        }
+        else
+        {
+          for(var r=0; r < numRows; r++)
+            for(var c=0; c < numCols; c++)
+              if(tbl.rows[r].cells[c].innerHTML.length > 0 && tbl.rows[r].cells[c].style.color != impossibleColour)
+                countPossibilitiesPrevious++;
+        }
+      
+        if(countPossibilitiesPrevious > 1)
+        {
+          for(var r=0; r < numRows; r++)
+            for(var c=0; c < numCols; c++)
+            { 
+              var bell = r * numCols + c + 1;
+              if(board[i][j] == bell || Array.isArray(board[i][j]) && board[i][j].indexOf(bell) > -1)
+                tbl.rows[r].cells[c].innerHTML = bell;
+              else
+              {
+                if(tbl.rows[r].cells[c].innerText == bell)
+                {
+                  if(tbl.rows[r].cells[c].style.color == "")
+                  {
+                    tbl.rows[r].cells[c].style.color = impossibleColour;
+                  }
+                  else
+                    tbl.rows[r].cells[c].innerHTML = "";
+                }
+              }
+            }
+        }
+        else
+          grid.rows[i].cells[j].innerHTML = board[i][j];
       }
       else
-        grid.rows[i].cells[j].innerHTML = board[i][j];
+      {
+        if(!Array.isArray(board[i][j]))
+        {
+          grid.rows[i].cells[j].innerHTML = board[i][j];
+          
+          // Make initially fixed bells as bold
+          if(rebuild)
+            grid.rows[i].cells[j].style.fontWeight = "bold"; 
+        }
+      }
     }
 }
 
@@ -175,26 +189,33 @@ function takeStep() {
   var strategies = [new OncePerRow(), new OnlyOneOptionInRow(), new NoJumping()];
 
   var isChanged = false;
+  var message = "";
+  
   for(var idx = 0; idx < strategies.length; idx++)
     if (strategies[idx].isActive)
     {
       isChanged = strategies[idx].step(puzzle, []);
       if (isChanged)
       {
-        console.log("Success using: " + strategies[idx].constructor.name)
+        message = "Success using: " + strategies[idx].constructor.name;
         break
       }
     }
 
-  updateGrid(puzzle)
-  return isChanged;
+  updateGrid(puzzle, false, true)
+  
+  return {
+    isChanged: isChanged,
+    message: message
+  };
 }
 
 function solveGrid() {
   var doContinue = true;
   while (doContinue)
   {
-    doContinue = takeStep();
+    var status = takeStep();
+    doContinue = status.isChanged;
   }
 }
 
