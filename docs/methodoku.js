@@ -264,6 +264,7 @@ function updateControls() {
 }
 
 function updatePuzzleFromGrid() {
+  //Update possibilities from grid
   var myElement = document.getElementById("grid");
   for(var i=0; i<puzzle.numRows; i++)
     for(var j=0; j<puzzle.numBells; j++)
@@ -294,6 +295,13 @@ function updatePuzzleFromGrid() {
         puzzle.solution[i][j] = options;
       }
     }
+    
+  //Update options from checkboxes
+  var controls = document.getElementById("optionControls");
+  var checkboxes = controls.querySelectorAll('input[type="checkbox"]');
+  for (var checkbox of checkboxes) {
+    puzzle.options[checkbox.id] = checkbox.checked;
+  }  
 }
 
 function isValidBellStr(str){
@@ -329,7 +337,7 @@ function takeStep(updateMessage=true) {
   updatePuzzleFromGrid();
 
   var strategies = [new AllWorkingExceptTreble(), new UpdatePossibilities(), new OncePerRow(), 
-    new OnlyOneOptionInRow(), new NoJumping(), new FillSquares(), new RemoveDeadEnds()];
+    new OnlyOneOptionInRow(), new NoJumping(), new FillSquares(), new RemoveDeadEnds(), new AllDoubleChanges(), new NoLongPlaces()];
 
   var isChanged = false;
   var message = "";

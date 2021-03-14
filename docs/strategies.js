@@ -236,3 +236,61 @@ class RemoveDeadEnds extends Strategy {
     return isChanged;
   }
 }
+
+class AllDoubleChanges extends Strategy {
+  isActive(puzzle) {
+    return puzzle.options.allDoubleChanges
+  }
+  step(puzzle) {
+    var isChanged = false;
+    if(puzzle.numBells != 5)
+    {
+      console.log("Not implemented yet")
+      return isChanged;
+    }
+    
+    for(var idx=0; idx<puzzle.numRows-1; idx++)
+      for(var jdx=0; jdx<puzzle.numBells; jdx++){
+        var info = isPositionDetermined(puzzle.solution, idx, jdx);
+        if(info.isFixed && (jdx+1 == 2 || jdx+1 == 4))
+          isChanged = isChanged | removeBell(puzzle.solution, idx+1, jdx, info.bell);
+      }
+    for(var idx=puzzle.numRows-1; idx>0; idx--)
+      for(var jdx=0; jdx<puzzle.numBells; jdx++){
+        var info = isPositionDetermined(puzzle.solution, idx, jdx);
+        if(info.isFixed && (jdx+1 == 2 || jdx+1 == 4))
+          isChanged = isChanged | removeBell(puzzle.solution, idx-1, jdx, info.bell);
+      }
+    
+    return isChanged;
+  }
+}
+
+class NoLongPlaces extends Strategy {
+  isActive(puzzle) {
+    return puzzle.options.noLongPlaces;
+  }
+  step(puzzle) {
+    var isChanged = false;
+    
+    var directions = [+1, -1];
+    for(var ddx=0; ddx<directions.length; ddx++) {
+      for(var idx=0; idx<puzzle.numRows; idx++)
+        for(var jdx=0; jdx<puzzle.numBells; jdx++) {
+          var info = isPositionDetermined(puzzle.solution, idx, jdx);
+          
+          var idxNext = iterateIndex(puzzle.solution, idx, directions[ddx]);
+          var idxNextNext = iterateIndex(puzzle.solution, idxNext, directions[ddx]);
+          
+          var infoNext = isPositionDetermined(puzzle.solution, idxNext, jdx);
+          
+          var isOK = directions[ddx] * (idxNextNext - idx) > 0;
+          
+          if(info.isFixed && infoNext.isFixed && isOK && info.bell == infoNext.bell)
+            isChanged = isChanged | removeBell(puzzle.solution, idxNextNext, jdx, info.bell);
+        }
+    }
+    
+    return isChanged;
+  }
+}
