@@ -50,6 +50,7 @@ function blankPuzzle(numRows, numBells) {
     start: start,
     solution: [],
     options: [],
+    optionsDerived: [],
     numRows: numRows,
     numBells: numBells
   };
@@ -323,17 +324,17 @@ function takeStep(updateMessage=true) {
   // Pick up changes made by the user
   updatePuzzleFromGrid();
 
-  var strategies = [new UpdatePossibilities(), new OncePerRow(), new OnlyOneOptionInRow(), new NoJumping()];
+  var strategies = [new AllWorkingExceptTreble(), new UpdatePossibilities(), new OncePerRow(), new OnlyOneOptionInRow(), new NoJumping(), new FillSquares()];
 
   var isChanged = false;
   var message = "";
   
   for(var idx = 0; idx < strategies.length; idx++)
-    if (strategies[idx].isActive)
+    if (strategies[idx].isActive(puzzle))
     {
       if(updateMessage)
         setStatus("Attempting strategy: " + strategies[idx].constructor.name)
-      isChanged = strategies[idx].step(puzzle.solution, []);
+      isChanged = strategies[idx].step(puzzle);
       if (isChanged)
       {
         message = "Success using: " + strategies[idx].constructor.name;
@@ -392,9 +393,24 @@ function isSolved() {
 
 function isPositionDetermined(board, idx, jdx) {
   if (!Array.isArray(board[idx][jdx]))
-    return [1, board[idx][jdx]];
+    return {
+      isFixed: 1,
+      bell: board[idx][jdx]
+    }
   else
-    return [0, -1];
+    return {
+      isFixed: 0,
+      bell: -1
+    }
+}
+
+function fixBell(board, idx, jdx, bell) {
+  if (board[idx][jdx] != bell) {
+    board[idx][jdx] = bell;
+    return true;
+  }
+  else
+    return false;
 }
 
 function removeBell(board, idx, jdx, bell) {
@@ -416,4 +432,20 @@ function removeBell(board, idx, jdx, bell) {
 
 function isPositionPossible(board, idx, jdx, bell) {
   return board[idx][jdx] == bell || Array.isArray(board[idx][jdx]) && board[idx][jdx].indexOf(bell) >= 0;
+}
+
+function makeBlowsConsistent(board, idx1, jdx1, idx2, jdx2) {
+  var array1 = board[idx1][jdx1];
+  if(!Array.isArray(array1))
+    array1 = [array1];
+  var array2 = board[idx2][jdx2];
+  if(!Array.isArray(array2))
+    array2 = [array2];
+  
+  var filteredArray = array1.filter(value => array2.includes(value));
+  if(filteredArray.length == 1)
+    filteredArray = filteredArray[0];
+    
+  board[idx1][jdx1] = filteredArray;
+  board[idx2][jdx2] = filteredArray;
 }

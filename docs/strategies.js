@@ -1,41 +1,61 @@
 class Strategy {
-  isActive(options)
+  isActive(puzzle)
   {
   }
-  step(puzzle, options)
+  step(puzzle)
   {
   }
 }
 
+class AllWorkingExceptTreble extends Strategy {
+  isActive(puzzle)
+  {
+    return puzzle.options.allWorkingExceptTreble;
+  }
+  step(puzzle)
+  {
+    var isChanged = false;
+    
+    var treble = 1;
+    isChanged = isChanged | fixBell(puzzle, puzzle.numRows, 1, treble);
+    
+    for(var b=1; b<=puzzle.numBells; b++) {
+      isChanged = isChanged | removeBell(puzzle.solution, puzzle.numRows, b, b);
+    }
+    
+    return isChanged;
+  }
+}
+
 class UpdatePossibilities extends Strategy {
-  isActive(options)
+  isActive(puzzle)
   {
     return true;
   }
-  step(puzzle, options)
+  step(puzzle)
   {
     return updateGrid(false, true)
   }
 }
 
 class OncePerRow extends Strategy {
- isActive(options)
+ isActive(puzzle)
  {
    return true;
  } 
- step(puzzle, options)
+ step(puzzle)
  {
    var isChanged = false;
-   for(var idx = 0; idx < puzzle.length; idx++)
-     for(var jdx = 0; jdx < puzzle[0].length; jdx++)
+   for(var idx = 0; idx < puzzle.solution.length; idx++)
+     for(var jdx = 0; jdx < puzzle.solution[0].length; jdx++)
      {
-       var info = isPositionDetermined(puzzle, idx, jdx);
-       if (info[0])
+       var info = isPositionDetermined(puzzle.solution, idx, jdx);
+       if (info.isFixed)
        {
-         for (var kdx = 0; kdx < puzzle[0].length; kdx++)
+         for (var kdx = 0; kdx < puzzle.solution[0].length; kdx++)
           if (kdx != jdx)
           {
-            isChanged = isChanged | removeBell(puzzle, idx, kdx, info[1]);
+            isChanged = isChanged | removeBell(puzzle.solution, idx, kdx, info.bell);
           }
        }
      }
@@ -44,26 +64,26 @@ class OncePerRow extends Strategy {
 }
 
 class OnlyOneOptionInRow extends Strategy {
-  isActive(options)
+  isActive(puzzle)
   {
     return true;
   }
-  step(puzzle, options)
+  step(puzzle)
   {
     var isChanged = false;
-    for(var idx = 0; idx < puzzle.length; idx++)
-      for(var bell = 1; bell <= puzzle[0].length; bell++)
+    for(var idx = 0; idx < puzzle.solution.length; idx++)
+      for(var bell = 1; bell <= puzzle.solution[0].length; bell++)
       {
         var possiblePlaces = [];
-        for (var jdx = 0; jdx < puzzle[0].length; jdx++)
-          if (isPositionPossible(puzzle, idx, jdx, bell))
+        for (var jdx = 0; jdx < puzzle.solution[0].length; jdx++)
+          if (isPositionPossible(puzzle.solution, idx, jdx, bell))
             possiblePlaces.push(jdx);
             
         if (possiblePlaces.length == 1)
         {
-          if (puzzle[idx][possiblePlaces[0]] != bell)
+          if (puzzle.solution[idx][possiblePlaces[0]] != bell)
           {
-            puzzle[idx][possiblePlaces[0]] = bell;
+            puzzle.solution[idx][possiblePlaces[0]] = bell;
             isChanged = true;
           }
         }
@@ -73,23 +93,23 @@ class OnlyOneOptionInRow extends Strategy {
 }
 
 class NoJumping extends Strategy {
-  isActive(options)
+  isActive(puzzle)
   {
     return true;
   }
-  step(puzzle, options)
+  step(puzzle)
   {
     var isChanged = false;
-    for(var idx = 0; idx < puzzle.length; idx++)
-      for(var jdx = 0; jdx < puzzle[0].length; jdx++)
+    for(var idx = 0; idx < puzzle.solution.length; idx++)
+      for(var jdx = 0; jdx < puzzle.solution[0].length; jdx++)
       {
-        var info = isPositionDetermined(puzzle, idx, jdx);
-        if (info[0])
+        var info = isPositionDetermined(puzzle.solution, idx, jdx);
+        if (info.isFixed)
         {
-          isChanged = isChanged | this.propagateUL(puzzle, idx, jdx, info[1]);
-          isChanged = isChanged | this.propagateUR(puzzle, idx, jdx, info[1]);
-          isChanged = isChanged | this.propagateDL(puzzle, idx, jdx, info[1]);
-          isChanged = isChanged | this.propagateDR(puzzle, idx, jdx, info[1]);
+          isChanged = isChanged | this.propagateUL(puzzle.solution, idx, jdx, info.bell);
+          isChanged = isChanged | this.propagateUR(puzzle.solution, idx, jdx, info.bell);
+          isChanged = isChanged | this.propagateDL(puzzle.solution, idx, jdx, info.bell);
+          isChanged = isChanged | this.propagateDR(puzzle.solution, idx, jdx, info.bell);
         }
       }
     return isChanged;
@@ -165,5 +185,25 @@ class NoJumping extends Strategy {
       idx++;
     }
     return isChanged;
+  }
+}
+
+class FillSquares extends Strategy {
+  isActive(puzzle) {
+    return true;
+  }
+  step(puzzle) {
+    for(var idx=0; idx<puzzle.numRows-1; idx++)
+      for(var jdx=0; jdx<puzzle.numBells-1; jdx++) { 
+        var square1 = isPositionDetermined(puzzle.solution, idx, jdx);
+        var square2 = isPositionDetermined(puzzle.solution, idx, jdx+1);
+        var square3 = isPositionDetermined(puzzle.solution, idx+1, jdx);
+        var square4 = isPositionDetermined(puzzle.solution, idx+1, jdx+1);
+        
+        if(square1.isFixed && square4.isFixed && square1.bell == square4.bell)
+          makeBlowsConsistent(puzzle.solution, idx, jdx+1, idx+1, jdx);
+        if(square2.isFixed && square3.isFixed && square2.bell == square3.bell)
+          makeBlowsConsistent(puzzle.solution, idx, jdx, idx+1, jdx+1);
+      }
   }
 }
