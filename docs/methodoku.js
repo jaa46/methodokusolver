@@ -73,17 +73,21 @@ for(var row = 0; row < numRows; row++)
     else
     {
       // Bell is free
-      var allOptions = [];
-      var lowEnd = 1;
-      var highEnd = numBells;
-      while(lowEnd <= highEnd){
-         allOptions.push(lowEnd++);
-      }
-      rowData.push(allOptions)
+      rowData.push(allOptions(puzzle.numBells))
     }
   }
   puzzle.solution.push(rowData);
 }
+}
+
+function allOptions(numBells) {
+var allOptions = [];
+  var lowEnd = 1;
+  var highEnd = numBells;
+  while(lowEnd <= highEnd){
+     allOptions.push(lowEnd++);
+  }
+  return allOptions;
 }
 
 function updateGrid(rebuild=false, showPossibilities=false) {
@@ -131,9 +135,9 @@ function updateGrid(rebuild=false, showPossibilities=false) {
         }
         else
         {
-          for(var r=0; r < numOptionRows; r++)
-            for(var c=0; c < numOptionCols; c++)
-              if(tbl.rows[r].cells[c].innerHTML.length > 0 && tbl.rows[r].cells[c].style.color != impossibleColour)
+          for(var r=0; r<tbl.rows.length; r++)
+            for(var c=0; c<tbl.rows[r].cells.length; c++)
+             if(isValidBellStr(tbl.rows[r].cells[c].innerText) && tbl.rows[r].cells[c].style.color != impossibleColour)
                 countPossibilitiesPrevious++;
         }
       
@@ -208,6 +212,19 @@ function num2bell(i) {
     return "?";
 }
 
+function bell2num(i) {
+  if (i < 10)
+    return i - "0";
+  else if (i == "0")
+    return 10;
+  else if (i == "E")
+    return 11;
+  else if (i == "T")
+    return 12;
+  else 
+    return "?";
+}
+
 function updateControls() {
   document.getElementById("numberOfRows").value = puzzle.numRows;
   document.getElementById("numberOfBells").value = puzzle.numBells;
@@ -218,6 +235,45 @@ function updateControls() {
     checkbox.checked = puzzle.options.indexOf(checkbox.id) >= 0;      
   }
 }
+
+function updatePuzzleFromGrid() {
+  var myElement = document.getElementById("grid");
+  for(var i=0; i<puzzle.numRows; i++)
+    for(var j=0; j<puzzle.numBells; j++)
+    {
+      var tbl = document.getElementById("options" + i + "_" + j);
+      if(!tbl)
+      {
+        if(grid.rows[i].cells[j].innerText)
+          // User has specified a bell
+          puzzle.solution[i][j] = bell2num(grid.rows[i].cells[j].innerText);
+        else
+          // This blow is free
+          puzzle.solution[i][j] = allOptions(puzzle.numBells);
+      }
+      else
+      {
+        var options = [];
+        for(var r=0; r<tbl.rows.length; r++)
+          for(var c=0; c<tbl.rows[r].cells.length; c++)
+          {
+            if(isValidBellStr(tbl.rows[r].cells[c].innerText))
+              options.push(bell2num(tbl.rows[r].cells[c].innerText));
+          }
+          
+        if(options.length == 1)
+          options = options[0];
+          
+        puzzle.solution[i][j] = options;
+      }
+    }
+}
+
+function isValidBellStr(str){
+  var special = ["0", "E", "T"];
+  return str && (str >= '1' && str <= '9' || special.indexOf(str) >= 0);
+}
+
 
 function updateConfig() {
   console.log("A checkbox has been changed by the user.")
@@ -241,6 +297,9 @@ function createNewPuzzle() {
 }
 
 function takeStep() {
+
+  // Pick up changes made by the user
+  updatePuzzleFromGrid();
 
   var strategies = [new OncePerRow(), new OnlyOneOptionInRow(), new NoJumping()];
 
@@ -267,6 +326,7 @@ function takeStep() {
 }
 
 function solveGrid() {
+
   var doContinue = true;
   while (doContinue)
   {
@@ -275,7 +335,7 @@ function solveGrid() {
   }
   
   // Final step for cosmetic effect. 
-  // Currently keep solution shown in 'possibility' format to avoid jumping around too much.
+  // Currently keep solutions shown in 'possibility' format for one further step to avoid jumping around too much.
   takeStep();
 }
 
