@@ -11,7 +11,8 @@ function copyGrid(orig_board) {
 
 
 function simplePuzzle() {
-  return [
+  return {
+    start: [
     [1,2,3,4],
     [0,1,0,3],
     [0,0,1,0],
@@ -21,24 +22,53 @@ function simplePuzzle() {
     [0,1,0,0],
     [1,0,0,2],
     [1,0,0,3]
-];
+    ],
+    solution: [],
+    options: [],
+    numRows: 9,
+    numBells: 4
+  };
+}
+
+function blankPuzzle(numRows, numBells) {
+  
+  var start = [];
+  for(var i=0; i<numRows; i++)
+  {
+      var row = [];
+      for(var j=0; j<numBells; j++)
+      {
+        if(i == 0)
+          row.push(j + 1);
+        else
+          row.push(0);
+      }
+      start.push(row);
+  }
+  
+  return {
+    start: start,
+    solution: [],
+    options: [],
+    numRows: numRows,
+    numBells: numBells
+  };
 }
 
 function buildPuzzle() {
 
-puzzle = [];
+var numBells = puzzle.numBells;
+var numRows = puzzle.numRows;
 
-var numBells = start[0].length;
-
-for(var row = 0; row < start.length; row++)
+for(var row = 0; row < numRows; row++)
 {
   var rowData = [];
-  for(var col = 0; col < start[0].length; col++)
+  for(var col = 0; col < numBells; col++)
   { 
-    if(start[row][col] > 0)
+    if(puzzle.start[row][col] > 0)
     {
        // Bell is fixed
-       rowData.push(start[row][col]);
+       rowData.push(puzzle.start[row][col]);
     }
     else
     {
@@ -52,22 +82,25 @@ for(var row = 0; row < start.length; row++)
       rowData.push(allOptions)
     }
   }
-  puzzle.push(rowData);
+  puzzle.solution.push(rowData);
 }
 }
 
-function updateGrid(board, rebuild=false, showPossibilities=false) {
+function updateGrid(rebuild=false, showPossibilities=false) {
+  
+  var board = puzzle.solution;
+  
   if(rebuild)
-    buildGrid(board.length, board[0].length);
+    buildGrid(puzzle.numRows, puzzle.numBells);
 
   var myElement = document.getElementById("grid");
-  for(var i=0; i<board.length; i++)
-    for(var j=0; j<board[0].length; j++)
+  for(var i=0; i<puzzle.numRows; i++)
+    for(var j=0; j<puzzle.numBells; j++)
     {
-      var tbl = document.getElementById("options" + i + j);
+      var tbl = document.getElementById("options" + i + "_" + j);
 
-      var numRows = board[0].length > 6 ? 3 : 2;
-      var numCols = Math.ceil(board[0].length / numRows);
+      var numOptionRows = puzzle.numBells > 6 ? 3 : 2;
+      var numOptionCols = Math.ceil(puzzle.numBells / numOptionRows);
 
       var impossibleColour = "#D3D3D3";
       var countPossibilitiesPrevious = 0;
@@ -79,13 +112,13 @@ function updateGrid(board, rebuild=false, showPossibilities=false) {
           if(Array.isArray(board[i][j]))
           {
             var tbl = document.createElement('table');
-            tbl.setAttribute("id", "options" + i + j);
+            tbl.setAttribute("id", "options" + i + "_" + j);
             grid.rows[i].cells[j].append(tbl);
 
-            for(var r=0; r < numRows; r++)
+            for(var r=0; r < numOptionRows; r++)
             {
               var row = tbl.insertRow(r);
-              for(var c=0; c < numCols; c++)
+              for(var c=0; c < numOptionCols; c++)
               { 
                 var cell = row.insertCell();
               }
@@ -98,23 +131,23 @@ function updateGrid(board, rebuild=false, showPossibilities=false) {
         }
         else
         {
-          for(var r=0; r < numRows; r++)
-            for(var c=0; c < numCols; c++)
+          for(var r=0; r < numOptionRows; r++)
+            for(var c=0; c < numOptionCols; c++)
               if(tbl.rows[r].cells[c].innerHTML.length > 0 && tbl.rows[r].cells[c].style.color != impossibleColour)
                 countPossibilitiesPrevious++;
         }
       
         if(countPossibilitiesPrevious > 1)
         {
-          for(var r=0; r < numRows; r++)
-            for(var c=0; c < numCols; c++)
+          for(var r=0; r < numOptionRows; r++)
+            for(var c=0; c < numOptionCols; c++)
             { 
-              var bell = r * numCols + c + 1;
+              var bell = r * numOptionCols + c + 1;
               if(board[i][j] == bell || Array.isArray(board[i][j]) && board[i][j].indexOf(bell) > -1)
-                tbl.rows[r].cells[c].innerHTML = bell;
+                tbl.rows[r].cells[c].innerHTML = num2bell(bell);
               else
               {
-                if(tbl.rows[r].cells[c].innerText == bell)
+                if(tbl.rows[r].cells[c].innerText == num2bell(bell))
                 {
                   if(tbl.rows[r].cells[c].style.color == "")
                   {
@@ -127,13 +160,13 @@ function updateGrid(board, rebuild=false, showPossibilities=false) {
             }
         }
         else
-          grid.rows[i].cells[j].innerHTML = board[i][j];
+          grid.rows[i].cells[j].innerHTML = num2bell(board[i][j]);
       }
       else
       {
         if(!Array.isArray(board[i][j]))
         {
-          grid.rows[i].cells[j].innerHTML = board[i][j];
+          grid.rows[i].cells[j].innerHTML = num2bell(board[i][j]);
           
           // Make initially fixed bells as bold
           if(rebuild)
@@ -175,13 +208,36 @@ function num2bell(i) {
     return "?";
 }
 
+function updateControls() {
+  document.getElementById("numberOfRows").value = puzzle.numRows;
+  document.getElementById("numberOfBells").value = puzzle.numBells;
+  
+  var controls = document.getElementById("optionControls");
+  var checkboxes = controls.querySelectorAll('input[type="checkbox"]');
+  for (var checkbox of checkboxes) {
+    checkbox.checked = puzzle.options.indexOf(checkbox.id) >= 0;      
+  }
+}
+
+function updateConfig() {
+  console.log("A checkbox has been changed by the user.")
+}
+
 var puzzle = [];
-var start = [];
 
 function loadInitialGrid() {
-  start = simplePuzzle();
+  puzzle = simplePuzzle();
   buildPuzzle();
-  updateGrid(puzzle, true)
+  updateControls();
+  updateGrid(true)
+}
+
+function createNewPuzzle() {
+  var numRows = document.getElementById("numberOfRows").value;
+  var numBells = document.getElementById("numberOfBells").value;
+  puzzle = blankPuzzle(numRows, numBells);
+  buildPuzzle();
+  updateGrid(true)
 }
 
 function takeStep() {
@@ -194,7 +250,7 @@ function takeStep() {
   for(var idx = 0; idx < strategies.length; idx++)
     if (strategies[idx].isActive)
     {
-      isChanged = strategies[idx].step(puzzle, []);
+      isChanged = strategies[idx].step(puzzle.solution, []);
       if (isChanged)
       {
         message = "Success using: " + strategies[idx].constructor.name;
@@ -202,7 +258,7 @@ function takeStep() {
       }
     }
 
-  updateGrid(puzzle, false, true)
+  updateGrid(false, true)
   
   return {
     isChanged: isChanged,
@@ -217,32 +273,36 @@ function solveGrid() {
     var status = takeStep();
     doContinue = status.isChanged;
   }
+  
+  // Final step for cosmetic effect. 
+  // Currently keep solution shown in 'possibility' format to avoid jumping around too much.
+  takeStep();
 }
 
-function isPositionDetermined(puzzle, idx, jdx) {
-  if (!Array.isArray(puzzle[idx][jdx]))
-    return [1, puzzle[idx][jdx]];
+function isPositionDetermined(board, idx, jdx) {
+  if (!Array.isArray(board[idx][jdx]))
+    return [1, board[idx][jdx]];
   else
     return [0, -1];
 }
 
-function removeBell(puzzle, idx, jdx, bell) {
+function removeBell(board, idx, jdx, bell) {
   var isChanged = false;
-  if (Array.isArray(puzzle[idx][jdx]))
+  if (Array.isArray(board[idx][jdx]))
   {
-    const index = puzzle[idx][jdx].indexOf(bell);
+    const index = board[idx][jdx].indexOf(bell);
     if (index > -1) {
       // console.log("Removing bell " + bell + " from (" + idx + "," + jdx + ")")
       isChanged = true;
-      puzzle[idx][jdx].splice(index, 1);
+      board[idx][jdx].splice(index, 1);
       
-      if (puzzle[idx][jdx].length == 1)
-        puzzle[idx][jdx] = puzzle[idx][jdx][0];
+      if (board[idx][jdx].length == 1)
+        board[idx][jdx] = board[idx][jdx][0];
     }
   }
   return isChanged;
 }
 
-function isPositionPossible(puzzle, idx, jdx, bell) {
-  return puzzle[idx][jdx] == bell || Array.isArray(puzzle[idx][jdx]) && puzzle[idx][jdx].indexOf(bell) >= 0;
+function isPositionPossible(board, idx, jdx, bell) {
+  return board[idx][jdx] == bell || Array.isArray(board[idx][jdx]) && board[idx][jdx].indexOf(bell) >= 0;
 }
