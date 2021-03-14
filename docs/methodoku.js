@@ -97,6 +97,8 @@ function updateGrid(rebuild=false, showPossibilities=false) {
   if(rebuild)
     buildGrid(puzzle.numRows, puzzle.numBells);
 
+  var isChanged = false;
+
   var myElement = document.getElementById("grid");
   for(var i=0; i<puzzle.numRows; i++)
     for(var j=0; j<puzzle.numBells; j++)
@@ -127,6 +129,7 @@ function updateGrid(rebuild=false, showPossibilities=false) {
                 var cell = row.insertCell();
               }
             }
+            isChanged = true;
             
             countPossibilitiesPrevious = board[i][j].length;
           }
@@ -148,7 +151,9 @@ function updateGrid(rebuild=false, showPossibilities=false) {
             { 
               var bell = r * numOptionCols + c + 1;
               if(board[i][j] == bell || Array.isArray(board[i][j]) && board[i][j].indexOf(bell) > -1)
-                tbl.rows[r].cells[c].innerHTML = num2bell(bell);
+              {
+                isChanged = isChanged | setBell(tbl.rows[r].cells[c], num2bell(bell));
+              }
               else
               {
                 if(tbl.rows[r].cells[c].innerText == num2bell(bell))
@@ -156,15 +161,20 @@ function updateGrid(rebuild=false, showPossibilities=false) {
                   if(tbl.rows[r].cells[c].style.color == "")
                   {
                     tbl.rows[r].cells[c].style.color = impossibleColour;
+                    isChanged = true;
                   }
                   else
-                    tbl.rows[r].cells[c].innerHTML = "";
+                  {
+                    isChanged = isChanged | setBell(tbl.rows[r].cells[c], "");
+                  }
                 }
               }
             }
         }
         else
-          grid.rows[i].cells[j].innerHTML = num2bell(board[i][j]);
+        {
+          isChanged = isChanged | setBell(grid.rows[i].cells[j], num2bell(board[i][j]));
+        }
       }
       else
       {
@@ -178,6 +188,18 @@ function updateGrid(rebuild=false, showPossibilities=false) {
         }
       }
     }
+    
+  return isChanged;
+}
+
+function setBell(cell, text) {
+  var isChanged = false;
+  if(cell.innerHTML != text)
+  {
+    cell.innerHTML = text;
+    isChanged = true;
+  }
+  return isChanged;
 }
 
 function buildGrid(rows, cols) {
@@ -213,7 +235,7 @@ function num2bell(i) {
 }
 
 function bell2num(i) {
-  if (i < 10)
+  if (i >= 1 && i < 10)
     return i - "0";
   else if (i == "0")
     return 10;
@@ -296,12 +318,12 @@ function createNewPuzzle() {
   updateGrid(true)
 }
 
-function takeStep() {
+function takeStep(updateMessage=true) {
 
   // Pick up changes made by the user
   updatePuzzleFromGrid();
 
-  var strategies = [new OncePerRow(), new OnlyOneOptionInRow(), new NoJumping()];
+  var strategies = [new UpdatePossibilities(), new OncePerRow(), new OnlyOneOptionInRow(), new NoJumping()];
 
   var isChanged = false;
   var message = "";
@@ -309,6 +331,8 @@ function takeStep() {
   for(var idx = 0; idx < strategies.length; idx++)
     if (strategies[idx].isActive)
     {
+      if(updateMessage)
+        setStatus("Attempting strategy: " + strategies[idx].constructor.name)
       isChanged = strategies[idx].step(puzzle.solution, []);
       if (isChanged)
       {
@@ -316,13 +340,27 @@ function takeStep() {
         break
       }
     }
-
+  
   updateGrid(false, true)
+
+  if(isSolved())
+    message = "Solved"
+  else if(!isChanged)
+  {
+    message = "No progress made"
+  }
+  
+  if(updateMessage)
+    setStatus(message)
   
   return {
     isChanged: isChanged,
     message: message
   };
+}
+
+function setStatus(message) {
+  document.getElementById("status").value = message;
 }
 
 function solveGrid() {
@@ -336,7 +374,20 @@ function solveGrid() {
   
   // Final step for cosmetic effect. 
   // Currently keep solutions shown in 'possibility' format for one further step to avoid jumping around too much.
-  takeStep();
+  takeStep(false);
+}
+
+function countSolvedBlows() {
+  var count = 0;
+  for(var i=0; i<puzzle.numRows; i++)
+    for(var j=0; j<puzzle.numBells; j++)
+      if(!Array.isArray(puzzle.solution[i][j]))
+        count++;
+  return count;
+}
+
+function isSolved() {
+  return countSolvedBlows() == puzzle.numRows * puzzle.numBells;
 }
 
 function isPositionDetermined(board, idx, jdx) {

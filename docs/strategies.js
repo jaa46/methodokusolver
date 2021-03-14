@@ -7,6 +7,17 @@ class Strategy {
   }
 }
 
+class UpdatePossibilities extends Strategy {
+  isActive(options)
+  {
+    return true;
+  }
+  step(puzzle, options)
+  {
+    return updateGrid(false, true)
+  }
+}
+
 class OncePerRow extends Strategy {
  isActive(options)
  {
