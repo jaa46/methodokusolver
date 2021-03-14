@@ -9,6 +9,13 @@ function copyGrid(orig_board) {
     return JSON.parse(JSON.stringify(orig_board));
 }
 
+function integerRange(lowEnd, highEnd) {
+  var allOptions = [];
+  while(lowEnd <= highEnd){
+     allOptions.push(lowEnd++);
+  }
+  return allOptions;
+}
 
 function simplePuzzle() {
   return {
@@ -85,10 +92,7 @@ function allOptions(numBells) {
 var allOptions = [];
   var lowEnd = 1;
   var highEnd = numBells;
-  while(lowEnd <= highEnd){
-     allOptions.push(lowEnd++);
-  }
-  return allOptions;
+  return integerRange(lowEnd, highEnd);
 }
 
 function updateGrid(rebuild=false, showPossibilities=false) {
@@ -324,7 +328,8 @@ function takeStep(updateMessage=true) {
   // Pick up changes made by the user
   updatePuzzleFromGrid();
 
-  var strategies = [new AllWorkingExceptTreble(), new UpdatePossibilities(), new OncePerRow(), new OnlyOneOptionInRow(), new NoJumping(), new FillSquares()];
+  var strategies = [new AllWorkingExceptTreble(), new UpdatePossibilities(), new OncePerRow(), 
+    new OnlyOneOptionInRow(), new NoJumping(), new FillSquares(), new RemoveDeadEnds()];
 
   var isChanged = false;
   var message = "";
@@ -448,4 +453,19 @@ function makeBlowsConsistent(board, idx1, jdx1, idx2, jdx2) {
     
   board[idx1][jdx1] = filteredArray;
   board[idx2][jdx2] = filteredArray;
+}
+
+function iterateIndex(board, idx, dir) {
+  idx += dir;
+  if(idx < 0)
+    idx = board.length - 2;
+  else if(idx >= board.length)
+    idx = 1;
+  return idx;
+}
+
+function findInRow(board, bell, idxNew, jdxPrev) {
+  var validMoves = integerRange(Math.max(0, jdxPrev-1), Math.min(jdxPrev+1, board[0].length-1));
+  validMoves = validMoves.filter(value => isPositionPossible(board, idxNew, value, bell));
+  return validMoves;
 }

@@ -207,3 +207,32 @@ class FillSquares extends Strategy {
       }
   }
 }
+
+class RemoveDeadEnds extends Strategy {
+  isActive(puzzle) {
+    return true;
+  }
+  step(puzzle) {
+    var isChanged = false;
+    
+    var directions = [+1, -1];
+    
+    for(var idx=0; idx<puzzle.numRows; idx++)
+      for(var jdx=0; jdx<puzzle.numBells; jdx++) {
+        var possibleBells = puzzle.solution[idx][jdx];
+        if(!Array.isArray(possibleBells))
+          possibleBells = [possibleBells];
+
+        for(var kdx=0; kdx<possibleBells.length; kdx++)
+          for(var ldx=0; ldx<directions.length; ldx++) {
+            var bell = possibleBells[kdx];
+            var dir = directions[ldx];
+            var idxNew = iterateIndex(puzzle.solution, idx, dir);
+            var pos = findInRow(puzzle.solution, bell, idxNew, jdx)
+            if(dir*(idxNew-idx) > 0 && pos.length == 0)
+              isChanged = isChanged | removeBell(puzzle.solution, idx, jdx, bell);
+          }
+      }
+    return isChanged;
+  }
+}
