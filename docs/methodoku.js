@@ -338,7 +338,8 @@ function takeStep(updateMessage=true) {
 
   var strategies = [new AllWorkingExceptTreble(), new UpdatePossibilities(), new OncePerRow(), 
     new OnlyOneOptionInRow(), new NoJumping(), new FillSquares(), new RemoveDeadEnds(), new AllDoubleChanges(), new NoLongPlaces(),
-    new NoNminus1thPlacesExceptUnderTreble(), new ApplyMirrorSymmetry(), new ApplyPalindromicSymmetry()];
+    new NoNminus1thPlacesExceptUnderTreble(), new ApplyMirrorSymmetry(), new ApplyPalindromicSymmetry(),
+    new ApplyDoubleSymmetry()];
 
   var isChanged = false;
   var message = "";

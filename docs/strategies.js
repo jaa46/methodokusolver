@@ -389,3 +389,36 @@ class ApplyPalindromicSymmetry extends Strategy {
     }
   }
 }
+
+class ApplyDoubleSymmetry extends Strategy {
+  isActive(puzzle) {
+    return puzzle.options.doubleSymmetry
+  }
+  
+  step(puzzle) {
+
+    var idxHLE = Math.floor(puzzle.numRows/2)-1;
+    var idxHLH = idxHLE+1;
+    
+    for(var firstBell=1; firstBell<= puzzle.numBells; firstBell++) {
+      var idxSecondBell = puzzle.numBells - firstBell;
+      var info = isPositionDetermined(puzzle.solution, idxHLH, idxSecondBell);
+      if(info.isFixed) {
+        this.i_double(puzzle, firstBell, info.bell)
+      }
+    }
+  }
+  
+  i_double(puzzle, bell1, bell2) {
+    for(var idx=1; idx<Math.ceil(puzzle.numRows/2); idx++) {
+      var infoFirstHalfBell = fixedInRow(puzzle.solution, bell1, idx);
+      if(infoFirstHalfBell.isFixed) {
+        fixBell(puzzle.solution, (puzzle.numRows-1)/2 + idx, puzzle.numBells-1 - infoFirstHalfBell.jdx, bell2)
+      }
+      var infoSecondHalfBell = fixedInRow(puzzle.solution, bell2, (puzzle.numRows-1)/2 + idx);
+      if(infoSecondHalfBell.isFixed) {
+        fixBell(puzzle.solution, idx, puzzle.numBells-1 - infoSecondHalfBell.jdx, bell1)
+      }
+    }
+  }
+}
