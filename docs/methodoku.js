@@ -337,7 +337,8 @@ function takeStep(updateMessage=true) {
   updatePuzzleFromGrid();
 
   var strategies = [new AllWorkingExceptTreble(), new UpdatePossibilities(), new OncePerRow(), 
-    new OnlyOneOptionInRow(), new NoJumping(), new FillSquares(), new RemoveDeadEnds(), new AllDoubleChanges(), new NoLongPlaces()];
+    new OnlyOneOptionInRow(), new NoJumping(), new FillSquares(), new RemoveDeadEnds(), new AllDoubleChanges(), new NoLongPlaces(),
+    new NoNminus1thPlacesExceptUnderTreble(), new ApplyMirrorSymmetry(), new ApplyPalindromicSymmetry()];
 
   var isChanged = false;
   var message = "";
@@ -476,4 +477,20 @@ function findInRow(board, bell, idxNew, jdxPrev) {
   var validMoves = integerRange(Math.max(0, jdxPrev-1), Math.min(jdxPrev+1, board[0].length-1));
   validMoves = validMoves.filter(value => isPositionPossible(board, idxNew, value, bell));
   return validMoves;
+}
+
+function fixedInRow(board, bell, idx) {
+  var isFixed = false;
+  var pos = -1;
+  for(var jdx=0; jdx<puzzle.numBells; jdx++)
+    if(board[idx][jdx] == bell) {
+      isFixed = true;
+      pos = jdx;
+      break
+    }
+   
+  return {
+    isFixed: isFixed,
+    jdx: pos
+  }
 }

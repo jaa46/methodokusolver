@@ -294,3 +294,98 @@ class NoLongPlaces extends Strategy {
     return isChanged;
   }
 }
+
+class NoNminus1thPlacesExceptUnderTreble extends Strategy {
+  isActive(puzzle) {
+    return puzzle.options.noNminus1thPlacesExceptUnderTreble
+  }
+  step(puzzle) {
+    var treble = 1;
+    for(var idx=0; idx<puzzle.numRows-1; idx++) {
+      var info = isPositionDetermined(puzzle.solution, idx, puzzle.numBells-2);
+      if(info.isFixed && !isPositionPossible(puzzle.solution, idx, puzzle.numBells-1, treble) && !isPositionPossible(puzzle.solution, idx+1, puzzle.numBells-1, treble))
+        removeBell(puzzle.solution, idx+1, puzzle.numBells-2, info.bell);
+    }
+    for(var idx=puzzle.numRows-1; idx>1; idx--) {
+      var info = isPositionDetermined(puzzle.solution, idx, puzzle.numBells-2);
+      if(info.isFixed && !isPositionPossible(puzzle.solution, idx, puzzle.numBells-1, treble) && !isPositionPossible(puzzle.solution, idx-1, puzzle.numBells-1, treble))
+        removeBell(puzzle.solution, idx-1, puzzle.numBells-2, info.bell);
+    }
+  }
+}
+
+class ApplyMirrorSymmetry extends Strategy {
+  isActive(puzzle) {
+    return puzzle.options.mirrorSymmetry
+  }
+  step(puzzle) {
+    for(var idx=1; idx<puzzle.numRows; idx++)
+      for(var firstBell = 1; firstBell<=puzzle.numBells; firstBell++) {
+        var infoBefore = fixedInRow(puzzle.solution, firstBell, idx-1);
+        var infoNow = fixedInRow(puzzle.solution, firstBell, idx);
+        
+        if(infoBefore.isFixed && infoNow.isFixed) {
+          var jdxBefore_mirror = puzzle.numBells - 1 - infoBefore.jdx;
+          var jdxNow_mirror = puzzle.numBells - 1 - infoNow.jdx;
+          makeBlowsConsistent(puzzle.solution, idx-1, jdxBefore_mirror, idx, jdxNow_mirror);
+        }
+      }
+  }
+}
+
+class ApplyPalindromicSymmetry extends Strategy {
+  isActive(puzzle) {
+    return puzzle.options.palindromicSymmetry
+  }
+  step(puzzle) {
+    //TODO: Handle symmetry in twin-hunt methods
+
+    //From leadhead to leadend
+    for(var idx=0; idx<puzzle.numBells; idx++) {
+      if(isPositionDetermined(puzzle.solution, puzzle.numRows-2, idx).isFixed) {
+        var backwardBell = puzzle.solution[puzzle.numRows-2][idx];
+        var forwardBell = puzzle.solution[0][idx];
+        this.i_palindromic(puzzle, forwardBell, backwardBell);
+      }
+    }
+    
+    //From half-lead
+    var idxHLE = Math.floor(puzzle.numRows/2)-1;
+    var idxHLH = idxHLE+1;
+
+    //Check if a pair crosses here
+    for(var idx=0; idx<puzzle.numBells-1; idx++) {
+      var infoHLE_L = isPositionDetermined(puzzle.solution, idxHLE, idx);
+      var infoHLH_L = isPositionDetermined(puzzle.solution, idxHLH, idx);
+      var infoHLE_R = isPositionDetermined(puzzle.solution, idxHLE, idx+1);
+      var infoHLH_R = isPositionDetermined(puzzle.solution, idxHLH, idx+1);
+      
+      if(infoHLE_L.isFixed && infoHLE_R.isFixed && infoHLH_L.isFixed && infoHLH_R.isFixed &&
+        infoHLE_L.bell == infoHLH_R.bell && infoHLE_R.bell == infoHLH_L.bell) {
+        this.i_palindromic(puzzle, infoHLE_L.bell, infoHLE_R.bell);
+      }
+    }
+
+    //Check if a pivot bell
+    for(var idx=0; idx<puzzle.numBells; idx++) {
+      var infoHLE = isPositionDetermined(puzzle.solution, idxHLE, idx);
+      var infoHLH = isPositionDetermined(puzzle.solution, idxHLH, idx);
+      
+      if(infoHLE.isFixed && infoHLH.isFixed && infoHLE.bell == infoHLH.bell) {
+        this.i_palindromic(puzzle, infoHLE.bell, infoHLE.bell);
+      }
+    }
+  }
+  
+  i_palindromic(puzzle, bell1, bell2) {
+    for(var idx=0; idx<puzzle.numRows-2; idx++) {
+      var info = fixedInRow(puzzle.solution, bell1, idx);
+      if(info.isFixed)
+        fixBell(puzzle.solution, puzzle.numRows-2 - idx, info.jdx, bell2);
+        
+      info = fixedInRow(puzzle.solution, bell2, idx);
+      if(info.isFixed)
+        fixBell(puzzle.solution, puzzle.numRows-2 - idx, info.jdx, bell1);
+    }
+  }
+}
