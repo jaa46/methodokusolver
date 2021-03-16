@@ -9,6 +9,16 @@ function copyGrid(orig_board) {
     return JSON.parse(JSON.stringify(orig_board));
 }
 
+function intersect(array1, array2) {
+  if(!Array.isArray(array1))
+    array1 = [array1];
+  if(!Array.isArray(array2))
+    array2 = [array2];
+    
+  var res = array1.filter(value => array2.includes(value));
+  return res;
+}
+
 function integerRange(lowEnd, highEnd) {
   var allOptions = [];
   while(lowEnd <= highEnd){
@@ -338,7 +348,8 @@ function takeStep(updateMessage=true) {
 
   var strategies = [new AllWorkingExceptTreble(), new UpdatePossibilities(), new OncePerRow(), 
     new OnlyOneOptionInRow(), new NoJumping(), new FillSquares(), new RemoveDeadEnds(), new AllDoubleChanges(), new NoLongPlaces(),
-    new NoNminus1thPlacesExceptUnderTreble(), new ApplyMirrorSymmetry(), new ApplyPalindromicSymmetry()];
+    new NoNminus1thPlacesExceptUnderTreble(), new ApplyMirrorSymmetry(), new ApplyPalindromicSymmetry(),
+    new ApplyDoubleSymmetry(), new Is2OrNLeadEnd()];
 
   var isChanged = false;
   var message = "";
@@ -419,7 +430,9 @@ function isPositionDetermined(board, idx, jdx) {
 }
 
 function fixBell(board, idx, jdx, bell) {
-  if (board[idx][jdx] != bell) {
+  if (!Array.isArray(bell) && Array.isArray(board[idx][jdx]) || 
+      !Array.isArray(bell) && !Array.isArray(board[idx][jdx]) && board[idx][jdx] != bell || 
+      Array.isArray(bell) && Array.isArray(board[idx][jdx] && !compare(bell, board[idx][jdx]))) {
     board[idx][jdx] = bell;
     return true;
   }
@@ -456,12 +469,15 @@ function makeBlowsConsistent(board, idx1, jdx1, idx2, jdx2) {
   if(!Array.isArray(array2))
     array2 = [array2];
   
-  var filteredArray = array1.filter(value => array2.includes(value));
+  var filteredArray = intersect(array1, array2);
+  
   if(filteredArray.length == 1)
     filteredArray = filteredArray[0];
-    
-  board[idx1][jdx1] = filteredArray;
-  board[idx2][jdx2] = filteredArray;
+  
+  var isChanged = false;
+  isChanged |= fixBell(board, idx1, jdx1, filteredArray);
+  isChanged |= fixBell(board, idx2, jdx2, filteredArray);
+  return isChanged;
 }
 
 function iterateIndex(board, idx, dir) {

@@ -300,17 +300,20 @@ class NoNminus1thPlacesExceptUnderTreble extends Strategy {
     return puzzle.options.noNminus1thPlacesExceptUnderTreble
   }
   step(puzzle) {
+    var isChanged = false;
     var treble = 1;
     for(var idx=0; idx<puzzle.numRows-1; idx++) {
       var info = isPositionDetermined(puzzle.solution, idx, puzzle.numBells-2);
       if(info.isFixed && !isPositionPossible(puzzle.solution, idx, puzzle.numBells-1, treble) && !isPositionPossible(puzzle.solution, idx+1, puzzle.numBells-1, treble))
-        removeBell(puzzle.solution, idx+1, puzzle.numBells-2, info.bell);
+        isChanged |= removeBell(puzzle.solution, idx+1, puzzle.numBells-2, info.bell);
     }
     for(var idx=puzzle.numRows-1; idx>1; idx--) {
       var info = isPositionDetermined(puzzle.solution, idx, puzzle.numBells-2);
       if(info.isFixed && !isPositionPossible(puzzle.solution, idx, puzzle.numBells-1, treble) && !isPositionPossible(puzzle.solution, idx-1, puzzle.numBells-1, treble))
-        removeBell(puzzle.solution, idx-1, puzzle.numBells-2, info.bell);
+        isChanged |= removeBell(puzzle.solution, idx-1, puzzle.numBells-2, info.bell);
     }
+    
+    return isChanged;
   }
 }
 
@@ -319,6 +322,7 @@ class ApplyMirrorSymmetry extends Strategy {
     return puzzle.options.mirrorSymmetry
   }
   step(puzzle) {
+    var isChanged = false;
     for(var idx=1; idx<puzzle.numRows; idx++)
       for(var firstBell = 1; firstBell<=puzzle.numBells; firstBell++) {
         var infoBefore = fixedInRow(puzzle.solution, firstBell, idx-1);
@@ -327,9 +331,10 @@ class ApplyMirrorSymmetry extends Strategy {
         if(infoBefore.isFixed && infoNow.isFixed) {
           var jdxBefore_mirror = puzzle.numBells - 1 - infoBefore.jdx;
           var jdxNow_mirror = puzzle.numBells - 1 - infoNow.jdx;
-          makeBlowsConsistent(puzzle.solution, idx-1, jdxBefore_mirror, idx, jdxNow_mirror);
+          isChanged |= makeBlowsConsistent(puzzle.solution, idx-1, jdxBefore_mirror, idx, jdxNow_mirror);
         }
       }
+    return isChanged;
   }
 }
 
@@ -340,12 +345,14 @@ class ApplyPalindromicSymmetry extends Strategy {
   step(puzzle) {
     //TODO: Handle symmetry in twin-hunt methods
 
+    var isChanged = false;
+
     //From leadhead to leadend
     for(var idx=0; idx<puzzle.numBells; idx++) {
       if(isPositionDetermined(puzzle.solution, puzzle.numRows-2, idx).isFixed) {
         var backwardBell = puzzle.solution[puzzle.numRows-2][idx];
         var forwardBell = puzzle.solution[0][idx];
-        this.i_palindromic(puzzle, forwardBell, backwardBell);
+        isChanged |= this.i_palindromic(puzzle, forwardBell, backwardBell);
       }
     }
     
@@ -362,7 +369,7 @@ class ApplyPalindromicSymmetry extends Strategy {
       
       if(infoHLE_L.isFixed && infoHLE_R.isFixed && infoHLH_L.isFixed && infoHLH_R.isFixed &&
         infoHLE_L.bell == infoHLH_R.bell && infoHLE_R.bell == infoHLH_L.bell) {
-        this.i_palindromic(puzzle, infoHLE_L.bell, infoHLE_R.bell);
+        isChanged |= this.i_palindromic(puzzle, infoHLE_L.bell, infoHLE_R.bell);
       }
     }
 
@@ -372,20 +379,148 @@ class ApplyPalindromicSymmetry extends Strategy {
       var infoHLH = isPositionDetermined(puzzle.solution, idxHLH, idx);
       
       if(infoHLE.isFixed && infoHLH.isFixed && infoHLE.bell == infoHLH.bell) {
-        this.i_palindromic(puzzle, infoHLE.bell, infoHLE.bell);
+        isChanged |= this.i_palindromic(puzzle, infoHLE.bell, infoHLE.bell);
       }
     }
+    
+    return isChanged;
   }
   
   i_palindromic(puzzle, bell1, bell2) {
+    var isChanged = false;
     for(var idx=0; idx<puzzle.numRows-2; idx++) {
       var info = fixedInRow(puzzle.solution, bell1, idx);
       if(info.isFixed)
-        fixBell(puzzle.solution, puzzle.numRows-2 - idx, info.jdx, bell2);
+        isChanged |= fixBell(puzzle.solution, puzzle.numRows-2 - idx, info.jdx, bell2);
         
       info = fixedInRow(puzzle.solution, bell2, idx);
       if(info.isFixed)
-        fixBell(puzzle.solution, puzzle.numRows-2 - idx, info.jdx, bell1);
+        isChanged |= fixBell(puzzle.solution, puzzle.numRows-2 - idx, info.jdx, bell1);
     }
+    
+    return isChanged;
+  }
+}
+
+class ApplyDoubleSymmetry extends Strategy {
+  isActive(puzzle) {
+    return puzzle.options.doubleSymmetry
+  }
+  
+  step(puzzle) {
+  
+    var isChanged = false;
+    var idxHLE = Math.floor(puzzle.numRows/2)-1;
+    var idxHLH = idxHLE+1;
+    
+    for(var firstBell=1; firstBell<= puzzle.numBells; firstBell++) {
+      var idxSecondBell = puzzle.numBells - firstBell;
+      var info = isPositionDetermined(puzzle.solution, idxHLH, idxSecondBell);
+      if(info.isFixed) {
+        isChanged |= this.i_double(puzzle, firstBell, info.bell)
+      }
+    }
+    return isChanged;
+  }
+  
+  i_double(puzzle, bell1, bell2) {
+    var isChanged = false;
+    for(var idx=1; idx<Math.ceil(puzzle.numRows/2); idx++) {
+      var infoFirstHalfBell = fixedInRow(puzzle.solution, bell1, idx);
+      if(infoFirstHalfBell.isFixed) {
+        isChanged |= fixBell(puzzle.solution, (puzzle.numRows-1)/2 + idx, puzzle.numBells-1 - infoFirstHalfBell.jdx, bell2)
+      }
+      var infoSecondHalfBell = fixedInRow(puzzle.solution, bell2, (puzzle.numRows-1)/2 + idx);
+      if(infoSecondHalfBell.isFixed) {
+        isChanged |= fixBell(puzzle.solution, idx, puzzle.numBells-1 - infoSecondHalfBell.jdx, bell1)
+      }
+    }
+    return isChanged;
+  }
+}
+
+class Is2OrNLeadEnd extends Strategy {
+  isActive(puzzle) {
+    if(puzzle.options.is2LeadEnd && puzzle.options.isNLeadEnd) {
+      console.log("Invalid configuration: can not have 2 lead ends specified")
+      return false;
+    }
+      
+    return puzzle.options.is2OrNLeadEnd || puzzle.options.is2LeadEnd || puzzle.options.isNLeadEnd
+  }
+  
+  step(puzzle) {
+    
+    var isChanged = false;
+    var is2LeadEnd = puzzle.options.is2LeadEnd || !this.checkIfGivenLeadEndPossible(puzzle, puzzle.numBells);
+    var isNLeadEnd = puzzle.options.isNLeadEnd || !this.checkIfGivenLeadEndPossible(puzzle, 2);
+  
+    if(is2LeadEnd)
+      isChanged |= this.applyLeadEnd(puzzle, 2);
+    else if (isNLeadEnd)
+      isChanged |= this.applyLeadEnd(puzzle, puzzle.numBells);
+
+    return isChanged;
+  }
+  
+  checkIfGivenLeadEndPossible(puzzle, place) {
+    var isPossible = true;
+    
+    if(place != 2 && place != puzzle.numBells)
+      console.log("Not implemented yet")
+    
+    isPossible &= this.checkLeadEndPairFeasible(puzzle, place, place);
+    
+    if(place == 2) {
+      for(var bell1 = 3; bell1<puzzle.numBells; bell1+=2)
+        isPossible &= this.checkLeadEndPairFeasible(puzzle, bell1, bell1+1);   
+    }
+    else if(place == puzzle.numBells) {
+      for(var bell1 = 2; bell1<puzzle.numBells; bell1+=2)
+        isPossible &= this.checkLeadEndPairFeasible(puzzle, bell1, bell1+1);
+    }
+    
+    //Rule out nth place leads starting with another place if only two blows in
+    //a place are allowed
+    var infoLH = isPositionDetermined(puzzle.solution, 1, puzzle.numBells-1);
+    var infoNext = isPositionDetermined(puzzle.solution, 2, puzzle.numBells-1);
+    
+    if(puzzle.options.noLongPlaces && infoNext.isFixed && infoLH.bell == infoNext.bell)
+      isPossible &= place != puzzle.numBells;
+      
+    return isPossible;
+  }
+  
+  checkLeadEndPairFeasible(puzzle, bell1, bell2) {
+    var idxLE = puzzle.numRows-2;
+    var idxLH = puzzle.numRows-1;
+    return intersect(puzzle.solution[idxLE][bell1-1], puzzle.solution[idxLH][bell2-1]).length > 0 &&
+      intersect(puzzle.solution[idxLE][bell2-1], puzzle.solution[idxLH][bell1-1]).length > 0;
+  }
+  
+  applyLeadEnd(puzzle, place) {
+    var isChanged = false;
+    var idxLE = puzzle.numRows-2;
+    var idxLH = puzzle.numRows-1;
+    isChanged |= makeBlowsConsistent(puzzle.solution, idxLE, place-1, idxLH, place-1)
+    
+    if(place == 2)
+      for(var idx=2; idx<puzzle.numBells; idx+=2)
+        isChanged |= this.makePairSwappingConsistent(puzzle, idx, idx+1)
+    else if(place == puzzle.numBells)
+      for(var idx=1; idx<puzzle.numBells-1; idx+=2)
+        isChanged |= this.makePairSwappingConsistent(puzzle, idx, idx+1)
+
+    return isChanged;
+  }
+  
+  makePairSwappingConsistent(puzzle, jdx1, jdx2) {
+    var isChanged = false;
+    var idxLE = puzzle.numRows-2;
+    var idxLH = puzzle.numRows-1;
+    isChanged |= makeBlowsConsistent(puzzle.solution, idxLE, jdx1, idxLH, jdx2)
+    isChanged |= makeBlowsConsistent(puzzle.solution, idxLE, jdx2, idxLH, jdx1)
+    
+    return isChanged;
   }
 }
