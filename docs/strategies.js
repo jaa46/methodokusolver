@@ -349,8 +349,9 @@ class ApplyPalindromicSymmetry extends Strategy {
 
     //From leadhead to leadend
     for(var idx=0; idx<puzzle.numBells; idx++) {
-      if(isPositionDetermined(puzzle.solution, puzzle.numRows-2, idx).isFixed) {
-        var backwardBell = puzzle.solution[puzzle.numRows-2][idx];
+      var info = isPositionDetermined(puzzle.solution, puzzle.numRows-2, idx);
+      if(info.isFixed) {
+        var backwardBell = info.bell;
         var forwardBell = puzzle.solution[0][idx];
         isChanged |= this.i_palindromic(puzzle, forwardBell, backwardBell);
       }
@@ -520,6 +521,29 @@ class Is2OrNLeadEnd extends Strategy {
     var idxLH = puzzle.numRows-1;
     isChanged |= makeBlowsConsistent(puzzle.solution, idxLE, jdx1, idxLH, jdx2)
     isChanged |= makeBlowsConsistent(puzzle.solution, idxLE, jdx2, idxLH, jdx1)
+    
+    return isChanged;
+  }
+}
+
+class NoShortCycles extends Strategy {
+  isActive(puzzle) {
+    return puzzle.options.fullCourse;
+  }
+  
+  step(puzzle) {
+    //TODO: Generalise this to longer-cycles
+    var isChanged = false;
+    
+    //Check for two cycles
+    for(var bell = 2; bell<=puzzle.numBells; bell++) {
+      // If we know where this bell is at the lead head, its new place bell
+      // cannot become this bell's original place bell.
+      var info = fixedInRow(puzzle.solution, bell, puzzle.numRows-1);
+      if(info.isFixed) {
+        isChanged |= removeBell(puzzle.solution, puzzle.numRows-1, bell-1, info.jdx+1)
+      }
+    }
     
     return isChanged;
   }

@@ -4,7 +4,6 @@ function compare(expected, actual) {
     return array1.length === array2.length && array1.sort().every(function (value, index) { return value === array2.sort()[index] });
 }
 
-
 function copyGrid(orig_board) {
     return JSON.parse(JSON.stringify(orig_board));
 }
@@ -349,7 +348,7 @@ function takeStep(updateMessage=true) {
   var strategies = [new AllWorkingExceptTreble(), new UpdatePossibilities(), new OncePerRow(), 
     new OnlyOneOptionInRow(), new NoJumping(), new FillSquares(), new RemoveDeadEnds(), new AllDoubleChanges(), new NoLongPlaces(),
     new NoNminus1thPlacesExceptUnderTreble(), new ApplyMirrorSymmetry(), new ApplyPalindromicSymmetry(),
-    new ApplyDoubleSymmetry(), new Is2OrNLeadEnd()];
+    new ApplyDoubleSymmetry(), new Is2OrNLeadEnd(), new NoShortCycles()];
 
   var isChanged = false;
   var message = "";
@@ -490,6 +489,8 @@ function iterateIndex(board, idx, dir) {
 }
 
 function findInRow(board, bell, idxNew, jdxPrev) {
+  //Given a bell rang in index jdxPrev, find where can it ring in the row with index idxNew
+  // With no jumping, there are at most three possible positions:
   var validMoves = integerRange(Math.max(0, jdxPrev-1), Math.min(jdxPrev+1, board[0].length-1));
   validMoves = validMoves.filter(value => isPositionPossible(board, idxNew, value, bell));
   return validMoves;
