@@ -488,7 +488,7 @@ function iterateIndex(board, idx, dir) {
   return idx;
 }
 
-function findInRow(board, bell, idxNew, jdxPrev) {
+function findOptionsInRow(board, bell, idxNew, jdxPrev) {
   //Given a bell rang in index jdxPrev, find where can it ring in the row with index idxNew
   // With no jumping, there are at most three possible positions:
   var validMoves = integerRange(Math.max(0, jdxPrev-1), Math.min(jdxPrev+1, board[0].length-1));
@@ -496,7 +496,7 @@ function findInRow(board, bell, idxNew, jdxPrev) {
   return validMoves;
 }
 
-function fixedInRow(board, bell, idx) {
+function isFixedInRow(board, bell, idx) {
   var isFixed = false;
   var pos = -1;
   for(var jdx=0; jdx<puzzle.numBells; jdx++)

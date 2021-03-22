@@ -228,7 +228,7 @@ class RemoveDeadEnds extends Strategy {
             var bell = possibleBells[kdx];
             var dir = directions[ldx];
             var idxNew = iterateIndex(puzzle.solution, idx, dir);
-            var pos = findInRow(puzzle.solution, bell, idxNew, jdx)
+            var pos = findOptionsInRow(puzzle.solution, bell, idxNew, jdx)
             if(dir*(idxNew-idx) > 0 && pos.length == 0)
               isChanged = isChanged | removeBell(puzzle.solution, idx, jdx, bell);
           }
@@ -325,8 +325,8 @@ class ApplyMirrorSymmetry extends Strategy {
     var isChanged = false;
     for(var idx=1; idx<puzzle.numRows; idx++)
       for(var firstBell = 1; firstBell<=puzzle.numBells; firstBell++) {
-        var infoBefore = fixedInRow(puzzle.solution, firstBell, idx-1);
-        var infoNow = fixedInRow(puzzle.solution, firstBell, idx);
+        var infoBefore = isFixedInRow(puzzle.solution, firstBell, idx-1);
+        var infoNow = isFixedInRow(puzzle.solution, firstBell, idx);
         
         if(infoBefore.isFixed && infoNow.isFixed) {
           var jdxBefore_mirror = puzzle.numBells - 1 - infoBefore.jdx;
@@ -390,11 +390,11 @@ class ApplyPalindromicSymmetry extends Strategy {
   i_palindromic(puzzle, bell1, bell2) {
     var isChanged = false;
     for(var idx=0; idx<puzzle.numRows-2; idx++) {
-      var info = fixedInRow(puzzle.solution, bell1, idx);
+      var info = isFixedInRow(puzzle.solution, bell1, idx);
       if(info.isFixed)
         isChanged |= fixBell(puzzle.solution, puzzle.numRows-2 - idx, info.jdx, bell2);
         
-      info = fixedInRow(puzzle.solution, bell2, idx);
+      info = isFixedInRow(puzzle.solution, bell2, idx);
       if(info.isFixed)
         isChanged |= fixBell(puzzle.solution, puzzle.numRows-2 - idx, info.jdx, bell1);
     }
@@ -427,11 +427,11 @@ class ApplyDoubleSymmetry extends Strategy {
   i_double(puzzle, bell1, bell2) {
     var isChanged = false;
     for(var idx=1; idx<Math.ceil(puzzle.numRows/2); idx++) {
-      var infoFirstHalfBell = fixedInRow(puzzle.solution, bell1, idx);
+      var infoFirstHalfBell = isFixedInRow(puzzle.solution, bell1, idx);
       if(infoFirstHalfBell.isFixed) {
         isChanged |= fixBell(puzzle.solution, (puzzle.numRows-1)/2 + idx, puzzle.numBells-1 - infoFirstHalfBell.jdx, bell2)
       }
-      var infoSecondHalfBell = fixedInRow(puzzle.solution, bell2, (puzzle.numRows-1)/2 + idx);
+      var infoSecondHalfBell = isFixedInRow(puzzle.solution, bell2, (puzzle.numRows-1)/2 + idx);
       if(infoSecondHalfBell.isFixed) {
         isChanged |= fixBell(puzzle.solution, idx, puzzle.numBells-1 - infoSecondHalfBell.jdx, bell1)
       }
@@ -539,7 +539,7 @@ class NoShortCycles extends Strategy {
     for(var bell = 2; bell<=puzzle.numBells; bell++) {
       // If we know where this bell is at the lead head, its new place bell
       // cannot become this bell's original place bell.
-      var info = fixedInRow(puzzle.solution, bell, puzzle.numRows-1);
+      var info = isFixedInRow(puzzle.solution, bell, puzzle.numRows-1);
       if(info.isFixed) {
         isChanged |= removeBell(puzzle.solution, puzzle.numRows-1, bell-1, info.jdx+1)
       }
