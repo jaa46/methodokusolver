@@ -299,7 +299,7 @@ function updatePuzzleFromGrid() {
         for(var r=0; r<tbl.rows.length; r++)
           for(var c=0; c<tbl.rows[r].cells.length; c++)
           {
-            if(isValidBellStr(tbl.rows[r].cells[c].innerText))
+            if(isValidBellStr(tbl.rows[r].cells[c].innerText) && tbl.rows[r].cells[c].style.color == "")
               options.push(bell2num(tbl.rows[r].cells[c].innerText));
           }
           
