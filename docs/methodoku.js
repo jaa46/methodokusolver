@@ -5,7 +5,10 @@ function compare(expected, actual) {
 }
 
 function copyGrid(orig_board) {
-    return JSON.parse(JSON.stringify(orig_board));
+  var newBoard = JSON.parse(JSON.stringify(orig_board));
+  //TODO: Make sure this has no side effects
+  newBoard.options = orig_board.options;
+  return newBoard;
 }
 
 function intersect(array1, array2) {
@@ -26,6 +29,7 @@ function integerRange(lowEnd, highEnd) {
   return allOptions;
 }
 
+/*
 function simplePuzzle() {
   return {
     start: [
@@ -45,6 +49,7 @@ function simplePuzzle() {
     numBells: 4
   };
 }
+*/
 
 function blankPuzzle(numRows, numBells) {
   
@@ -268,7 +273,7 @@ function updateControls() {
   var controls = document.getElementById("optionControls");
   var checkboxes = controls.querySelectorAll('input[type="checkbox"]');
   for (var checkbox of checkboxes) {
-    checkbox.checked = puzzle.options.indexOf(checkbox.id) >= 0;      
+    checkbox.checked = puzzle.options.indexOf(checkbox.id) >= 0 || puzzle.options[checkbox.id];
   }
 }
 
@@ -325,8 +330,9 @@ function updateConfig() {
 
 var puzzle = [];
 
-function loadInitialGrid() {
-  puzzle = simplePuzzle();
+function loadPuzzle() {
+  var dropdown = document.getElementById("examplePuzzle");
+  puzzle = copyGrid(examplePuzzles[dropdown.selectedIndex]);
   buildPuzzle();
   updateControls();
   updateGrid(true)
@@ -521,7 +527,7 @@ function isRowDetermined(board, idx) {
 }
 
 function takeGuess(puzzle, numberOptions, withPropagation) {
-  var directions = [-1, +1];
+  var directions = [1, -1];
   var isChanged = false;
   for(var idx=0; idx<puzzle.numRows; idx++)
     for(var jdx=0; jdx<puzzle.numBells; jdx++)
@@ -534,7 +540,7 @@ function takeGuess(puzzle, numberOptions, withPropagation) {
         for(var bdx=0; bdx<bellOptions.length; bdx++) {
           var idxStart = idx;
           for(var ddx=0; ddx<directions.length; ddx++) {
-            var idxNew = iterateIndex(puzzle.solution, idx, directions[ddx]);
+            var idxNew = iterateIndex(puzzle.solution, idxStart, directions[ddx]);
             var candidates = findOptionsInRow(puzzle.solution, bellOptions[bdx], idxNew, jdx);
             
             // If any of these possible blows have just one option remaining, it must be our bell
@@ -546,8 +552,7 @@ function takeGuess(puzzle, numberOptions, withPropagation) {
                 startingFromKnownPoint, withPropagation);
               
               if(posToRemove.length > 0) {
-                posToRemove.forEach(pos => removeBell(puzzle.solution, pos[0], pos[1], bell));
-                isChanged = true;
+                isChanged = removeBell(puzzle.solution, posToRemove[0], posToRemove[1], bellOptions[bdx]);
                 return isChanged;
               }
             }
@@ -555,6 +560,7 @@ function takeGuess(puzzle, numberOptions, withPropagation) {
         }
         
       }
+  return isChanged;
 }
 
 function trackBellTillJunction(puzzle, bell, idx, jdx, idxOrig, jdxOrig, direction, startingFromKnownPoint, withPropagation) {
@@ -599,11 +605,11 @@ function trackBellTillJunction(puzzle, bell, idx, jdx, idxOrig, jdxOrig, directi
     if(puzzleWorking.options.palindromicSymmetry) {
       var isPalindromicValid = true;
       var idxHLE = Math.floor(puzzleWorking.numRows/2)-1;
-      if(idxHLE == idxOrig && d > 0 || idxHLE == idx && d < 0)
+      if(idxHLE == idxOrig && direction > 0 || idxHLE == idx && direction < 0)
         if(jdx == jdxOrig) {
           //Can we be pivot bell?
           var candidateOpposite = bell;
-          isPalindromicValid &= checkOppositeArePossible(puzzleWorking, bell, candidateOpposite);
+          isPalindromicValid &= checkOppositesArePossible(puzzleWorking, bell, candidateOpposite);
         }
         else {
           //Which bell are we swapping with?
@@ -613,20 +619,20 @@ function trackBellTillJunction(puzzle, bell, idx, jdx, idxOrig, jdxOrig, directi
           if (infoCandidateA.isFixed && !infoCandidateB.isFixed) {
             candidateOppositeBell = infoCandidateA.bell;
             isPalindromicValid = isPositionPossible(puzzleWorking.solution, idx, jdxOrig, candidateOppositeBell)
-              && checkOppositesArePossible(opts, bell, candidateOppositeBell);
+              && checkOppositesArePossible(puzzleWorking, bell, candidateOppositeBell);
           }
           else if (!infoCandidateA.isFixed && infoCandidateB.isFixed) {
             candidateOppositeBell = infoCandidateB.bell;
             isPalindromicValid = isPositionPossible(puzzleWorking.solution, idxOrig, jdx, candidateOppositeBell)
-              && checkOppositesArePossible(opts, bell, candidateOppositeBell);
+              && checkOppositesArePossible(puzzleWorking, bell, candidateOppositeBell);
           }
           else if (infoCandidateA.isFixed && infoCandidateB.isFixed) {
             candidateOppositeBell = infoCandidateA.bell;
             isPalindromicValid = infoCandidateA.bell == infoCandidateB.bell
-              && checkOppositesArePossible(opts, bell, candidateOppositeBell);
+              && checkOppositesArePossible(puzzleWorking, bell, candidateOppositeBell);
           }
           else {
-            isPalindromicValid = intersect(opts[idxOrig][jdx], opts[idx][jdxOrig]).length > 0;
+            isPalindromicValid = intersect(puzzleWorking.solution[idxOrig][jdx], puzzleWorking.solution[idx][jdxOrig]).length > 0;
           }
         }
         
@@ -664,8 +670,8 @@ function trackBellTillJunction(puzzle, bell, idx, jdx, idxOrig, jdxOrig, directi
     //Check for long places: need to only make invalid if there's no possibility of leading or lying behind before or after
     var N = puzzle.numBells;
     if(startingFromKnownPoint && puzzleWorking.options.noLongPlaces && (direction*(idx-idxOrig)>0) && placeCount == 2 && 
-      (jdx==1 && !isPositionPossible(puzzleWorking.solution, idxNext, 0, bell) && isPositionDetermined(puzzleWorking.solution, idxPrevPrev, 0, bell)) ||
-      (jdx==N-2 && !isPositionPossible(puzzleWorking.solution, idxNext, N-1, bell) && isPositionDetermined(puzzleWorking.solution, idxPrevPrev, N-1, bell)))
+      (jdx==1 && !isPositionPossible(puzzleWorking.solution, idxNext, 0, bell) && isPositionPossible(puzzleWorking.solution, idxPrevPrev, 0, bell)) ||
+      (jdx==N-2 && !isPositionPossible(puzzleWorking.solution, idxNext, N-1, bell) && isPositionPossible(puzzleWorking.solution, idxPrevPrev, N-1, bell)))
       isValid = false;
       
     var jdxPrev = jdxOrig;
@@ -682,7 +688,7 @@ function trackBellTillJunction(puzzle, bell, idx, jdx, idxOrig, jdxOrig, directi
         
       if (startingFromKnownPoint && puzzleWorking.options.noLongPlaces && (direction*(idxNextNext-idxOrig)>0)) {
         var jdxs = [jdxPrev, jdx, candidates[0]];
-        if (compare(jdx, [2,2,3]) || compare(jdxs, [N-2,N-1,N-1]))
+        if (compare(jdxs, [1,1,2]) || compare(jdxs, [N-3,N-2,N-2]))
           isValid = false;
       }
       
@@ -697,7 +703,7 @@ function trackBellTillJunction(puzzle, bell, idx, jdx, idxOrig, jdxOrig, directi
   }
   
   if(!isValid) {
-    if(history[0][0] == puzzleWorking.numBells-1) {
+    if(history[0][0] == puzzleWorking.numRows-1) {
         history = [];
     }
     else { 
@@ -711,7 +717,7 @@ function trackBellTillJunction(puzzle, bell, idx, jdx, idxOrig, jdxOrig, directi
   return history;
 }
 
-function checkOppositeArePossible(puzzle, forwardBell, backwardBell) {
+function checkOppositesArePossible(puzzle, forwardBell, backwardBell) {
   var isPossible = true;
   for(var idx=0; idx<puzzle.numRows-1; idx++) {
     var info1 = isFixedInRow(puzzle.solution, forwardBell, idx);
@@ -722,6 +728,7 @@ function checkOppositeArePossible(puzzle, forwardBell, backwardBell) {
     if(info2.isFixed)
       isPossible &= isPositionPossible(puzzle.solution, puzzle.numRows-2 - idx, info2.jdx, forwardBell);
   }
+  return isPossible;
 }
 
 function checkNoShortCycles(puzzle) {

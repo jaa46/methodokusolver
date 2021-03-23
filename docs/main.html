@@ -3,6 +3,7 @@
 <head>
     <script type="text/javascript" src='strategies.js'> </script>
     <script type="text/javascript" src='methodoku.js'> </script>
+    <script type="text/javascript" src='tests.js'> </script>
 </head>
 <style>
 table, th, td {
@@ -36,8 +37,9 @@ td table td {
 
 <body>
 
-<input type = "button" onclick = "loadInitialGrid()" value = "Load example puzzle">  
 <input type = "button" onclick = "createNewPuzzle()" value = "Create new puzzle">  
+<select id = "examplePuzzle" name = "Test puzzles">  
+<input type = "button" onclick = "loadPuzzle()" value = "Load example puzzle">  
 <br>
 <br>
 <label class="checkboxlabel">Number of rows</label>
@@ -103,7 +105,7 @@ td table td {
 <table id="grid" contenteditable='true'>
 </table>
 
-<script>createNewPuzzle();</script>
+<script>createNewPuzzle(); loadTests();</script>
 
 </body>
 </html>

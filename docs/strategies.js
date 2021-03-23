@@ -18,10 +18,10 @@ class AllWorkingExceptTreble extends Strategy {
     var isChanged = false;
     
     var treble = 1;
-    isChanged = isChanged | fixBell(puzzle, puzzle.numRows, 1, treble);
+    isChanged = isChanged | fixBell(puzzle.solution, puzzle.numRows-1, 0, treble);
     
-    for(var b=1; b<=puzzle.numBells; b++) {
-      isChanged = isChanged | removeBell(puzzle.solution, puzzle.numRows, b, b);
+    for(var b=2; b<=puzzle.numBells; b++) {
+      isChanged = isChanged | removeBell(puzzle.solution, puzzle.numRows-1, b-1, b);
     }
     
     return isChanged;
@@ -559,7 +559,8 @@ class DoNotMakeBadDecision extends Strategy {
   step(puzzle)
   {
     //Only guess from fixed bells, with no propagation
-    takeGuess(puzzle, 1, false)
+    var isChanged = takeGuess(puzzle, 1, false);
+    return isChanged;
   }
 }
 
@@ -572,7 +573,8 @@ class DoNotMakeBadGuess extends Strategy {
   step(puzzle)
   {
     //Guess from blows with 2 remaining options, with no propagation
-    takeGuess(puzzle, 2, false)
+    var isChanged = takeGuess(puzzle, 2, false)
+    return isChanged;
     
     //TODO: Guess plain bob leadends
   }
