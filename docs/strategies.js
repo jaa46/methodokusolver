@@ -1,4 +1,5 @@
 class Strategy {
+  isRecursive = false;
   isActive(puzzle)
   {
   }
@@ -546,5 +547,33 @@ class NoShortCycles extends Strategy {
     }
     
     return isChanged;
+  }
+}
+
+class DoNotMakeBadDecision extends Strategy {
+  isRecursive = true;
+  isActive(puzzle)
+  {
+    return true;
+  }
+  step(puzzle)
+  {
+    //Only guess from fixed bells, with no propagation
+    takeGuess(puzzle, 1, false)
+  }
+}
+
+class DoNotMakeBadGuess extends Strategy {
+  isRecursive = true;
+  isActive(puzzle)
+  {
+    return true;
+  }
+  step(puzzle)
+  {
+    //Guess from blows with 2 remaining options, with no propagation
+    takeGuess(puzzle, 2, false)
+    
+    //TODO: Guess plain bob leadends
   }
 }
