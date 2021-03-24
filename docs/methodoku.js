@@ -350,7 +350,7 @@ var strategies = [new AllWorkingExceptTreble(), new UpdatePossibilities(), new O
   new OnlyOneOptionInRow(), new NoJumping(), new FillSquares(), new RemoveDeadEnds(), new AllDoubleChanges(), new NoLongPlaces(),
   new NoNminus1thPlacesExceptUnderTreble(), new ApplyMirrorSymmetry(), new ApplyPalindromicSymmetry(),
   new ApplyDoubleSymmetry(), new Is2OrNLeadEnd(), new NoShortCycles(), new DoNotMakeBadDecision(false), new DoNotMakeBadGuess(false), 
-  new DoNotMakeBadDecision(true), new DoNotMakeBadGuess(true)];
+  new DoNotMakeBadDecision(true), new DoNotMakeBadGuess(true), new PalindromicSymmetryFull(), new DoubleSymmetryFull(), new MirrorSymmetryFull()];
 
 function takeStep(updateMessage=true) {
 

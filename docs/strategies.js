@@ -590,3 +590,181 @@ class DoNotMakeBadGuess extends Strategy {
     //TODO: Guess plain bob leadends
   }
 }
+
+class PalindromicSymmetryFull extends Strategy {
+  isActive(puzzle)
+  {
+    return puzzle.options.palindromicSymmetry;
+  }
+  step(puzzle)
+  {
+    var isChanged = false;
+    //Apply symmetry from forwards to backwards
+    isChanged |= this.apply(puzzle, 1);
+    
+    //Apply symmetry from backwards to forwards (likely not required)
+    isChanged |= this.apply(puzzle, -1);
+    
+    return isChanged;
+  }
+  apply(puzzle, direction) {
+    var idxStart = 0;
+    var idxEnd = puzzle.numRows-1;
+    
+    var isChanged = false;
+    for(var bell=1; bell<=puzzle.numBells; bell++) {
+      var candidates = [];
+      var otherBlows = [];
+      var isFirstOccurence = true;
+      for(var idx=idxStart; idx<=idxEnd; idx++) {
+        var info = isFixedInRow(puzzle.solution, bell, idx);
+        if(info.isFixed) {
+          //These positions in the other part of the lead must all compatible
+          //i.e. the options must be the intersection of each other
+          var correspondingBlow = this.map(idx,info.jdx,puzzle.numRows,puzzle.numBells,direction);
+          otherBlows.push(correspondingBlow);
+          if(isFirstOccurence) {
+            candidates = puzzle.solution[correspondingBlow[0]][correspondingBlow[1]];
+            isFirstOccurence = false;
+          }
+          else {
+            candidates = intersect(candidates, puzzle.solution[correspondingBlow[0]][correspondingBlow[1]]);
+          }
+        }
+      }
+      
+      //Update these blows with the possibilities
+      for(var count=0; count<otherBlows.length; count++) {
+        var blow = otherBlows[count];
+        isChanged |= fixBell(puzzle.solution, blow[0], blow[1], candidates);
+      }
+    }
+    return isChanged;
+  }
+  map(idx,jdx,numRows,numBells,direction) {
+    //Reflect vertically
+    return [numRows-1 - idx, jdx];
+  }
+}
+
+class DoubleSymmetryFull extends Strategy {
+  isActive(puzzle)
+  {
+    return puzzle.options.doubleSymmetry;
+  }
+  step(puzzle)
+  {
+    var isChanged = false;
+    //Apply symmetry from first half to second
+    isChanged |= this.apply(puzzle, 1);
+    
+    //Apply symmetry from second half to first
+    isChanged |= this.apply(puzzle, -1);
+    
+    return isChanged;
+  }
+  apply(puzzle, direction) {
+    if(direction > 0) {
+      var idxStart = 0;
+      var idxEnd = Math.ceil(puzzle.numRows/2)-1;
+    }
+    else {
+      var idxStart = Math.ceil(puzzle.numRows/2);
+      var idxEnd = puzzle.numRows-1;      
+    }
+    
+    var isChanged = false;
+    for(var bell=1; bell<=puzzle.numBells; bell++) {
+      var candidates = [];
+      var otherBlows = [];
+      var isFirstOccurence = true;
+      for(var idx=idxStart; idx<=idxEnd; idx++) {
+        var info = isFixedInRow(puzzle.solution, bell, idx);
+        if(info.isFixed) {
+          //These positions in the other part of the lead must all compatible
+          //i.e. the options must be the intersection of each other
+          var correspondingBlow = this.map(idx,info.jdx,puzzle.numRows,puzzle.numBells,direction);
+          otherBlows.push(correspondingBlow);
+          if(isFirstOccurence) {
+            candidates = puzzle.solution[correspondingBlow[0]][correspondingBlow[1]];
+            isFirstOccurence = false;
+          }
+          else {
+            candidates = intersect(candidates, puzzle.solution[correspondingBlow[0]][correspondingBlow[1]]);
+          }
+        }
+      }
+      
+      //Update these blows with the possibilities
+      for(var count=0; count<otherBlows.length; count++) {
+        var blow = otherBlows[count];
+        isChanged |= fixBell(puzzle.solution, blow[0], blow[1], candidates);
+      }
+    }
+    return isChanged;
+  }
+  map(idx,jdx,numRows,numBells,direction) {
+    if(direction > 0)
+      //First halflead to second
+      return [idx + Math.floor(numRows/2), numBells-1 -jdx];
+    else
+      //Second halflead to first
+      return [idx - Math.floor(numRows/2), numBells-1 -jdx];
+  }
+}
+
+class MirrorSymmetryFull extends Strategy {
+  isActive(puzzle)
+  {
+    return puzzle.options.mirrorSymmetry;
+  }
+  step(puzzle)
+  {
+    var isChanged = false;
+    //Apply symmetry from first half to second
+    isChanged |= this.apply(puzzle, 1);
+    
+    //Apply symmetry from second half to first (likely unnecessary)
+    isChanged |= this.apply(puzzle, -1);
+    
+    return isChanged;
+  }
+  apply(puzzle, direction) {
+    var idxStart = 0;
+    var idxEnd = puzzle.numRows-1;
+    
+    var isChanged = false;
+    for(var bell=1; bell<=puzzle.numBells; bell++) {
+      var candidates = [];
+      var otherBlows = [];
+      var isFirstOccurence = true;
+      for(var idx=idxStart; idx<=idxEnd; idx++) {
+        var info = isFixedInRow(puzzle.solution, bell, idx);
+        if(info.isFixed) {
+          //These positions in the other part of the lead must all compatible
+          //i.e. the options must be the intersection of each other
+          var correspondingBlow = this.map(idx,info.jdx,puzzle.numRows,puzzle.numBells,direction);
+          otherBlows.push(correspondingBlow);
+          if(isFirstOccurence) {
+            candidates = puzzle.solution[correspondingBlow[0]][correspondingBlow[1]];
+            isFirstOccurence = false;
+          }
+          else {
+            candidates = intersect(candidates, puzzle.solution[correspondingBlow[0]][correspondingBlow[1]]);
+          }
+        }
+      }
+      
+      //Update these blows with the possibilities
+      for(var count=0; count<otherBlows.length; count++) {
+        var blow = otherBlows[count];
+        isChanged |= fixBell(puzzle.solution, blow[0], blow[1], candidates);
+      }
+    }
+    return isChanged;
+  }
+  map(idx,jdx,numRows,numBells,direction) {
+    //Reflect horizontally
+    return [idx, numBells-1 -jdx];
+  }
+}
