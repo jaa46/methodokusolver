@@ -73,7 +73,7 @@ function addPuzzle(text, url) {
 
     var row = [];
     for(var jdx=0; jdx<numBells; jdx++) {
-      row.push(lines[index][jdx] - "0");
+      row.push(bell2num(lines[index][jdx]));
     }
     start.push(row);
     index++;

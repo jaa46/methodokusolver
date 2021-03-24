@@ -194,6 +194,8 @@ class FillSquares extends Strategy {
     return true;
   }
   step(puzzle) {
+    var isChanged = false;
+
     for(var idx=0; idx<puzzle.numRows-1; idx++)
       for(var jdx=0; jdx<puzzle.numBells-1; jdx++) { 
         var square1 = isPositionDetermined(puzzle.solution, idx, jdx);
@@ -202,10 +204,11 @@ class FillSquares extends Strategy {
         var square4 = isPositionDetermined(puzzle.solution, idx+1, jdx+1);
         
         if(square1.isFixed && square4.isFixed && square1.bell == square4.bell)
-          makeBlowsConsistent(puzzle.solution, idx, jdx+1, idx+1, jdx);
+          isChanged |= makeBlowsConsistent(puzzle.solution, idx, jdx+1, idx+1, jdx);
         if(square2.isFixed && square3.isFixed && square2.bell == square3.bell)
-          makeBlowsConsistent(puzzle.solution, idx, jdx, idx+1, jdx+1);
+          isChanged |= makeBlowsConsistent(puzzle.solution, idx, jdx, idx+1, jdx+1);
       }
+    return isChanged;
   }
 }
 

@@ -6,6 +6,10 @@
     <script type="text/javascript" src='tests.js'> </script>
 </head>
 <style>
+input text {
+width: 1000px;
+}
+
 table, th, td {
   border: 1px solid black;
   border-collapse: collapse;
@@ -97,7 +101,8 @@ td table td {
 
 <br>
 <input type = "button" onclick = "solveGrid()" value = "Solve">  
-<input type = "button" onclick = "takeStep()" value = "Take step">  
+<input type = "button" onclick = "takeStep()" value = "Take step">
+<br>
 <label class="checkboxlabel">Status: </label>
 <input type = "text" id = "status" value = "">  
 <br>

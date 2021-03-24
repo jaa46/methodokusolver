@@ -367,7 +367,9 @@ function takeStep(updateMessage=true) {
       isChanged = strategies[idx].step(puzzle);
       if (isChanged)
       {
-        message = "Success using: " + strategies[idx].constructor.name;
+        message = "Success using: " + strategies[idx].constructor.name + " (" + countSolvedBlows() + " " + countRemainingOptions() + ")";
+        if (idx!=1)
+          console.log(message)
         break
       }
     }
@@ -417,6 +419,14 @@ function countSolvedBlows() {
   return count;
 }
 
+function countRemainingOptions() {
+  var count = 0;
+  for(var i=0; i<puzzle.numRows; i++)
+    for(var j=0; j<puzzle.numBells; j++)
+      count+= Array.isArray(puzzle.solution[i][j]) ? puzzle.solution[i][j].length : 1;
+  return count;
+}
+
 function isSolved() {
   return countSolvedBlows() == puzzle.numRows * puzzle.numBells;
 }
@@ -437,7 +447,7 @@ function isPositionDetermined(board, idx, jdx) {
 function fixBell(board, idx, jdx, bell) {
   if (!Array.isArray(bell) && Array.isArray(board[idx][jdx]) || 
       !Array.isArray(bell) && !Array.isArray(board[idx][jdx]) && board[idx][jdx] != bell || 
-      Array.isArray(bell) && Array.isArray(board[idx][jdx] && !compare(bell, board[idx][jdx]))) {
+      Array.isArray(bell) && Array.isArray(board[idx][jdx]) && !compare(bell, board[idx][jdx])) {
     board[idx][jdx] = bell;
     return true;
   }
@@ -451,7 +461,7 @@ function removeBell(board, idx, jdx, bell) {
   {
     const index = board[idx][jdx].indexOf(bell);
     if (index > -1) {
-      // console.log("Removing bell " + bell + " from (" + idx + "," + jdx + ")")
+      //console.log("Removing bell " + bell + " from " + (idx+1) + "," + (jdx+1))
       isChanged = true;
       board[idx][jdx].splice(index, 1);
       
@@ -552,6 +562,7 @@ function takeGuess(puzzle, numberOptions, withPropagation) {
                 startingFromKnownPoint, withPropagation);
               
               if(posToRemove.length > 0) {
+                console.log("Remove bell " + bellOptions[bdx] + " from " + posToRemove[0] + "," + posToRemove[1])
                 isChanged = removeBell(puzzle.solution, posToRemove[0], posToRemove[1], bellOptions[bdx]);
                 return isChanged;
               }
@@ -670,8 +681,8 @@ function trackBellTillJunction(puzzle, bell, idx, jdx, idxOrig, jdxOrig, directi
     //Check for long places: need to only make invalid if there's no possibility of leading or lying behind before or after
     var N = puzzle.numBells;
     if(startingFromKnownPoint && puzzleWorking.options.noLongPlaces && (direction*(idx-idxOrig)>0) && placeCount == 2 && 
-      (jdx==1 && !isPositionPossible(puzzleWorking.solution, idxNext, 0, bell) && isPositionPossible(puzzleWorking.solution, idxPrevPrev, 0, bell)) ||
-      (jdx==N-2 && !isPositionPossible(puzzleWorking.solution, idxNext, N-1, bell) && isPositionPossible(puzzleWorking.solution, idxPrevPrev, N-1, bell)))
+      (jdx==1 && !(isPositionPossible(puzzleWorking.solution, idxNext, 0, bell) && isPositionPossible(puzzleWorking.solution, idxPrevPrev, 0, bell)) ||
+      jdx==N-2 && !(isPositionPossible(puzzleWorking.solution, idxNext, N-1, bell) && isPositionPossible(puzzleWorking.solution, idxPrevPrev, N-1, bell))))
       isValid = false;
       
     var jdxPrev = jdxOrig;
