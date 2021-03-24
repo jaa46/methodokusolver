@@ -349,7 +349,8 @@ function createNewPuzzle() {
 var strategies = [new AllWorkingExceptTreble(), new UpdatePossibilities(), new OncePerRow(), 
   new OnlyOneOptionInRow(), new NoJumping(), new FillSquares(), new RemoveDeadEnds(), new AllDoubleChanges(), new NoLongPlaces(),
   new NoNminus1thPlacesExceptUnderTreble(), new ApplyMirrorSymmetry(), new ApplyPalindromicSymmetry(),
-  new ApplyDoubleSymmetry(), new Is2OrNLeadEnd(), new NoShortCycles(), new DoNotMakeBadDecision(), new DoNotMakeBadGuess()];
+  new ApplyDoubleSymmetry(), new Is2OrNLeadEnd(), new NoShortCycles(), new DoNotMakeBadDecision(false), new DoNotMakeBadGuess(false), 
+  new DoNotMakeBadDecision(true), new DoNotMakeBadGuess(true)];
 
 function takeStep(updateMessage=true) {
 
@@ -583,15 +584,16 @@ function trackBellTillJunction(puzzle, bell, idx, jdx, idxOrig, jdxOrig, directi
     //Determine consequences of making this guess
     while(true) {
       var isChanged = false;
-      for(var idx = 0; idx < strategies.length; idx++)
-        if(!strategies[idx].isRecursive && strategies[idx].isActive(puzzleWorking))
+      for(var idxS = 0; idxS < strategies.length; idxS++)
+        if(!strategies[idxS].isRecursive && strategies[idxS].isActive(puzzleWorking))
         {
-          if(updateMessage)
-            console.log("Internal use of strategy: " + strategies[idx].constructor.name); // setStatus("Attempting strategy: " + strategies[idx].constructor.name)
-            
-          isChanged |= strategies[idx].step(puzzleWorking);
+          //console.log("Internal use of strategy: " + strategies[idxS].constructor.name);
+          isChanged |= strategies[idxS].step(puzzleWorking);
         }
-      if(!isChanged)
+      
+      isValid &= checkSolutionValid(puzzleWorking);
+      
+      if(!isValid || !isChanged)
         break;
     }
   }
@@ -651,8 +653,8 @@ function trackBellTillJunction(puzzle, bell, idx, jdx, idxOrig, jdxOrig, directi
           if(puzzleWorking.options.fullCourse && (puzzleWorking.options.is2LeadEnd || puzzleWorking.options.isNLeadEnd || puzzleWorking.options.is2OrNLeadEnd))
           {
             var puzzleNew = copyGrid(puzzleWorking);
-            puzzleNew[puzzle.numRows-2][bell-1] = candidateOppositeBell;
-            puzzleNew[puzzle.numRows-2][candidateOppositeBell-1] = bell;
+            puzzleNew.solution[puzzleNew.numRows-2][bell-1] = candidateOppositeBell;
+            puzzleNew.solution[puzzleNew.numRows-2][candidateOppositeBell-1] = bell;
             
             var strategy = new Is2OrNLeadEnd();
             var is2LeadEnd = puzzleNew.options.is2LeadEnd || !strategy.checkIfGivenLeadEndPossible(puzzleNew, puzzleNew.numBells);
@@ -679,7 +681,7 @@ function trackBellTillJunction(puzzle, bell, idx, jdx, idxOrig, jdxOrig, directi
     }
     
     //Check for long places: need to only make invalid if there's no possibility of leading or lying behind before or after
-    var N = puzzle.numBells;
+    var N = puzzleWorking.numBells;
     if(startingFromKnownPoint && puzzleWorking.options.noLongPlaces && (direction*(idx-idxOrig)>0) && placeCount == 2 && 
       (jdx==1 && !(isPositionPossible(puzzleWorking.solution, idxNext, 0, bell) && isPositionPossible(puzzleWorking.solution, idxPrevPrev, 0, bell)) ||
       jdx==N-2 && !(isPositionPossible(puzzleWorking.solution, idxNext, N-1, bell) && isPositionPossible(puzzleWorking.solution, idxPrevPrev, N-1, bell))))
@@ -726,6 +728,28 @@ function trackBellTillJunction(puzzle, bell, idx, jdx, idxOrig, jdxOrig, directi
     history = []; 
   }
   return history;
+}
+
+function checkSolutionValid(puzzle) {
+
+var isValid = true;
+
+for(var idx=0; idx<puzzle.numRows; idx++)
+  for(var jdx=0; jdx<puzzle.numBells; jdx++)
+    if(puzzle.solution[idx][jdx].length == 0)
+      isValid = false;
+      
+for(var idx=0; idx<puzzle.numRows; idx++) {
+  var fixedBells = [];
+  for(var jdx=0; jdx<puzzle.numBells; jdx++) {
+    var info = isPositionDetermined(puzzle.solution, idx, jdx);
+    if(info.isFixed)
+      fixedBells.push(info.bell);
+  }
+  
+  isValid &= new Set(fixedBells).size == fixedBells.length
+}
+return isValid;
 }
 
 function checkOppositesArePossible(puzzle, forwardBell, backwardBell) {

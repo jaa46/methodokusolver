@@ -554,6 +554,10 @@ class NoShortCycles extends Strategy {
 }
 
 class DoNotMakeBadDecision extends Strategy {
+  constructor(doPropagate) {
+    super();
+    this.doPropagate = doPropagate;
+  }
   isRecursive = true;
   isActive(puzzle)
   {
@@ -562,12 +566,16 @@ class DoNotMakeBadDecision extends Strategy {
   step(puzzle)
   {
     //Only guess from fixed bells, with no propagation
-    var isChanged = takeGuess(puzzle, 1, false);
+    var isChanged = takeGuess(puzzle, 1, this.doPropagate);
     return isChanged;
   }
 }
 
 class DoNotMakeBadGuess extends Strategy {
+  constructor(doPropagate) {
+    super();
+    this.doPropagate = doPropagate;
+  }
   isRecursive = true;
   isActive(puzzle)
   {
@@ -576,7 +584,7 @@ class DoNotMakeBadGuess extends Strategy {
   step(puzzle)
   {
     //Guess from blows with 2 remaining options, with no propagation
-    var isChanged = takeGuess(puzzle, 2, false)
+    var isChanged = takeGuess(puzzle, 2, this.doPropagate)
     return isChanged;
     
     //TODO: Guess plain bob leadends
