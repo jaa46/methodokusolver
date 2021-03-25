@@ -350,7 +350,7 @@ var strategies = [new AllWorkingExceptTreble(), new UpdatePossibilities(), new O
   new OnlyOneOptionInRow(), new NoJumping(), new FillSquares(), new RemoveDeadEnds(), new AllDoubleChanges(), new NoLongPlaces(),
   new NoNminus1thPlacesExceptUnderTreble(), new ApplyMirrorSymmetry(), new ApplyPalindromicSymmetry(),
   new ApplyDoubleSymmetry(), new Is2OrNLeadEnd(), new NoShortCycles(), new DoNotMakeBadDecision(false), new DoNotMakeBadGuess(false), 
-  new DoNotMakeBadDecision(true), new DoNotMakeBadGuess(true), new PalindromicSymmetryFull(), new DoubleSymmetryFull(), new MirrorSymmetryFull()];
+  new PalindromicSymmetryFull(), new DoubleSymmetryFull(), new MirrorSymmetryFull(), new DoNotMakeBadDecision(true), new DoNotMakeBadGuess(true)];
 
 function takeStep(updateMessage=true) {
 
@@ -369,6 +369,8 @@ function takeStep(updateMessage=true) {
       if (isChanged)
       {
         message = "Success using: " + strategies[idx].constructor.name + " (" + countSolvedBlows() + " " + countRemainingOptions() + ")";
+        if (strategies[idx].doPropagate)
+          message += "(" + strategies[idx].doPropagate + ")";
         if (idx!=1)
           console.log(message)
         break
@@ -456,10 +458,10 @@ function fixBell(board, idx, jdx, bell) {
     return false;
 }
 
+var isGlobalOK = true;
 function removeBell(board, idx, jdx, bell) {
   var isChanged = false;
-  if (Array.isArray(board[idx][jdx]))
-  {
+  if (Array.isArray(board[idx][jdx])) {
     const index = board[idx][jdx].indexOf(bell);
     if (index > -1) {
       //console.log("Removing bell " + bell + " from " + (idx+1) + "," + (jdx+1))
@@ -468,7 +470,14 @@ function removeBell(board, idx, jdx, bell) {
       
       if (board[idx][jdx].length == 1)
         board[idx][jdx] = board[idx][jdx][0];
+
+      isChanged = true;
     }
+  }
+  
+  if (!Array.isArray(board[idx][jdx]) && !isChanged && board[idx][jdx] == bell || Array.isArray(board[idx][jdx]) && board[idx][jdx].length == 0) {
+    //Things have gone wrong
+    isGlobalOK = false;
   }
   return isChanged;
 }
@@ -581,17 +590,27 @@ function trackBellTillJunction(puzzle, bell, idx, jdx, idxOrig, jdxOrig, directi
   var isValid = true;
   
   if(withPropagation) {
+    isGlobalOK = true;
+    
     //Determine consequences of making this guess
     while(true) {
       var isChanged = false;
-      for(var idxS = 0; idxS < strategies.length; idxS++)
-        if(!strategies[idxS].isRecursive && strategies[idxS].isActive(puzzleWorking))
+
+      var relevantStrategies = [];
+      var relevantIndices = [2,3,6,5,4,8,7,11,17,12,18];
+      relevantIndices.forEach(i => relevantStrategies.push(strategies[i]));
+
+      for(var idxS = 0; idxS < relevantStrategies.length; idxS++)
+        if(!relevantStrategies[idxS].isRecursive && relevantStrategies[idxS].isActive(puzzleWorking) && isGlobalOK)
         {
-          //console.log("Internal use of strategy: " + strategies[idxS].constructor.name);
-          isChanged |= strategies[idxS].step(puzzleWorking);
-        }
+          //console.log("Internal use of strategy: " + relevantStrategies[idxS].constructor.name);
+          isChanged |= relevantStrategies[idxS].step(puzzleWorking);
+          
+          isValid &= checkSolutionValid(puzzleWorking);
       
-      isValid &= checkSolutionValid(puzzleWorking);
+          if(!isGlobalOK)
+            isValid = false;
+        }
       
       if(!isValid || !isChanged)
         break;

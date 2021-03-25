@@ -311,7 +311,7 @@ class NoNminus1thPlacesExceptUnderTreble extends Strategy {
       if(info.isFixed && !isPositionPossible(puzzle.solution, idx, puzzle.numBells-1, treble) && !isPositionPossible(puzzle.solution, idx+1, puzzle.numBells-1, treble))
         isChanged |= removeBell(puzzle.solution, idx+1, puzzle.numBells-2, info.bell);
     }
-    for(var idx=puzzle.numRows-1; idx>1; idx--) {
+    for(var idx=puzzle.numRows-1; idx>=1; idx--) {
       var info = isPositionDetermined(puzzle.solution, idx, puzzle.numBells-2);
       if(info.isFixed && !isPositionPossible(puzzle.solution, idx, puzzle.numBells-1, treble) && !isPositionPossible(puzzle.solution, idx-1, puzzle.numBells-1, treble))
         isChanged |= removeBell(puzzle.solution, idx-1, puzzle.numBells-2, info.bell);
@@ -609,7 +609,7 @@ class PalindromicSymmetryFull extends Strategy {
   }
   apply(puzzle, direction) {
     var idxStart = 0;
-    var idxEnd = puzzle.numRows-1;
+    var idxEnd = puzzle.numRows-2;
     
     var isChanged = false;
     for(var bell=1; bell<=puzzle.numBells; bell++) {
@@ -633,6 +633,9 @@ class PalindromicSymmetryFull extends Strategy {
         }
       }
       
+      if(candidates.length == 1)
+        candidates = candidates[0];
+      
       //Update these blows with the possibilities
       for(var count=0; count<otherBlows.length; count++) {
         var blow = otherBlows[count];
@@ -643,7 +646,7 @@ class PalindromicSymmetryFull extends Strategy {
   }
   map(idx,jdx,numRows,numBells,direction) {
     //Reflect vertically
-    return [numRows-1 - idx, jdx];
+    return [numRows-2 - idx, jdx];
   }
 }
 
@@ -669,7 +672,7 @@ class DoubleSymmetryFull extends Strategy {
       var idxEnd = Math.ceil(puzzle.numRows/2)-1;
     }
     else {
-      var idxStart = Math.ceil(puzzle.numRows/2);
+      var idxStart = Math.ceil(puzzle.numRows/2)-1;
       var idxEnd = puzzle.numRows-1;      
     }
     
@@ -694,6 +697,9 @@ class DoubleSymmetryFull extends Strategy {
           }
         }
       }
+      
+      if(candidates.length == 1)
+        candidates = candidates[0];
       
       //Update these blows with the possibilities
       for(var count=0; count<otherBlows.length; count++) {
@@ -754,6 +760,9 @@ class MirrorSymmetryFull extends Strategy {
           }
         }
       }
+      
+      if(candidates.length == 1)
+        candidates = candidates[0];
       
       //Update these blows with the possibilities
       for(var count=0; count<otherBlows.length; count++) {
