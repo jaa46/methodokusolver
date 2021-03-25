@@ -818,3 +818,10 @@ if(isRowComplete[idx]) {
 }
 return isInvalid;
 }
+
+function checkRowPossible(board, idx, row) {
+  var isOK = true;
+  for(var jdx=0; jdx<board[0].length; jdx++)
+    isOK &= isPositionPossible(board, idx, jdx, row[jdx]);
+  return isOK;
+}

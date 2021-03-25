@@ -487,10 +487,10 @@ class Is2OrNLeadEnd extends Strategy {
     
     //Rule out nth place leads starting with another place if only two blows in
     //a place are allowed
-    var infoLH = isPositionDetermined(puzzle.solution, 1, puzzle.numBells-1);
-    var infoNext = isPositionDetermined(puzzle.solution, 2, puzzle.numBells-1);
+    var infoStart = isPositionDetermined(puzzle.solution, 0, puzzle.numBells-1);
+    var infoNext = isPositionDetermined(puzzle.solution, 1, puzzle.numBells-1);
     
-    if(puzzle.options.noLongPlaces && infoNext.isFixed && infoLH.bell == infoNext.bell)
+    if(puzzle.options.noLongPlaces && infoNext.isFixed && infoStart.bell == infoNext.bell)
       isPossible &= place != puzzle.numBells;
       
     return isPossible;
@@ -585,9 +585,106 @@ class DoNotMakeBadGuess extends Strategy {
   {
     //Guess from blows with 2 remaining options, with no propagation
     var isChanged = takeGuess(puzzle, 2, this.doPropagate)
-    return isChanged;
     
-    //TODO: Guess plain bob leadends
+    //Guess plain bob leadends
+    if(puzzle.options.plainBobLeadEnd) {
+      var plainBobLeadHeads = this.generatePlainBobLeadHeads(puzzle.numBells);
+      var idxHLH = Math.floor(puzzle.numRows/2);
+      var idxLH = puzzle.numRows - 1;
+      isChanged |= this.guessPlainBob(puzzle, withPropagation, plainBobLeadHeads, [idxLH, idxLH-1], [idxHLH, idxHLH-1]);
+
+      var plainBobLeadEnds = this.generatePlainBobLeadEnds(puzzle.numBells);
+      var idxHLE = Math.floor(puzzle.numRows/2) - 1;
+      var idxLE = puzzle.numRows - 2;
+      isChanged |= this.guessPlainBob(puzzle, withPropagation, plainBobLeadEnds, [idxLE, idxLE+1], [idxHLE, idxHLE+1]);
+    }
+
+    return isChanged;
+  }
+  guessPlainBob(puzzle, withPropagation, possibleLeads, idxLead, idxHalfLead) {
+    var isChanged = false;
+    
+    //Test out leadhead/end
+    var jdxLead = [1,1];
+    isChanged |= this.tryEachRow(puzzle, withPropagation, possibleLeads, idxLead, jdxLead);
+    
+    if(puzzle.options.doubleSymmetry) {
+      //Test out half-leadhead/end
+      var possibleHeadLeads = possibleLeads.forEach(v => v.reverse);
+      var jdxHalfLead = [puzzle.numBells-1, puzzle.numBells-1];
+      isChanged |= this.tryEachRow(puzzle, withPropagation, possibleHeadLeads, idxHalfLead, jdxHalfLead);      
+    }
+    
+    return isChanged;
+  }
+  tryEachRow(puzzle, withPropagation, possibleRows, idxRows, jdxRows) {
+    var idxValidRows = [];
+    for(var rdx=0; rdx<possibleRows.length; rdx++) {
+      var row = possibleRows[rdx];
+      if(checkRowPossible(puzzle.solution, idxRows[0], row)) {
+        var puzzleWorking = copyGrid(puzzle);
+        for(var jdx=0; jdx<puzzle.numBells; jdx++) {
+          fixBell(puzzleWorking, idxRows[0], jdx, row[jdx]);
+        }
+        
+        var startingFromKnownPoint = false;
+        var bell = treble;
+        var direction = 1;
+        var posToRemove = trackBellTillJunction(puzzleWorking, bell, idxRows[0], jdxRows[0], idxRows[1], jdxRows[1], 
+          direction, startingFromKnownPoint, withPropagation);
+        if(posToRemove.length > 0)
+          idxValidRows.push(rdx);
+      }
+    }
+    
+    var isChanged = false;
+    if(idxValidRows.length == 1)
+      for(var jdx=0; jdx<puzzle.numBells; jdx++)
+        isChanged |= fixBell(puzzle, idxRows[0], jdx, possibleRows[rdx][jdx]);
+        
+    return isChanged;
+  }
+  generatePlainBobLeadHeads(numBells) {
+    // 123456
+    var firstLead = integerRange(1, numBells);
+    
+    // 132546
+    for(var idx=1; idx<numBells-1; idx+=2) {
+      var t = firstLead[idx];
+      firstLead[idx] = firstLead[idx+1];
+      firstLead[idx+1] = t;
+    }
+
+    // 135264
+    for(var idx=2; idx<numBells-1; idx+=2) {
+      var t = firstLead[idx];
+      firstLead[idx] = firstLead[idx+1];
+      firstLead[idx+1] = t;
+    }
+    
+    var collection = [];
+    collection.push(firstLead);
+    
+    for(var ldx=1; ldx<numBells-1; ldx++) {
+      var prevLead = collection[ldx-1];
+      var newLead = [];
+      collection[0].forEach(bell => newLead.push(prevLead[bell-1]));
+      collection.push(newLead);
+    }
+    return collection;
+  }
+  generatePlainBobLeadEnds(numBells) {
+    var leadends = this.generatePlainBobLeadHeads(numBells);
+
+    // 132546
+    var perm = integerRange(1, numBells);
+    for(var idx=1; idx<numBells-1; idx+=2) {
+      var t = perm[idx];
+      perm[idx] = perm[idx+1];
+      perm[idx+1] = t;
+    }
+    var leadheads = leadends.map(function(r){return perm.map(function(p) {return r[p-1];} );});
+    return leadheads;
   }
 }
 
