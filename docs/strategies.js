@@ -591,12 +591,12 @@ class DoNotMakeBadGuess extends Strategy {
       var plainBobLeadHeads = this.generatePlainBobLeadHeads(puzzle.numBells);
       var idxHLH = Math.floor(puzzle.numRows/2);
       var idxLH = puzzle.numRows - 1;
-      isChanged |= this.guessPlainBob(puzzle, withPropagation, plainBobLeadHeads, [idxLH, idxLH-1], [idxHLH, idxHLH-1]);
+      isChanged |= this.guessPlainBob(puzzle, this.doPropagate, plainBobLeadHeads, [idxLH, idxLH-1], [idxHLH, idxHLH-1]);
 
       var plainBobLeadEnds = this.generatePlainBobLeadEnds(puzzle.numBells);
       var idxHLE = Math.floor(puzzle.numRows/2) - 1;
       var idxLE = puzzle.numRows - 2;
-      isChanged |= this.guessPlainBob(puzzle, withPropagation, plainBobLeadEnds, [idxLE, idxLE+1], [idxHLE, idxHLE+1]);
+      isChanged |= this.guessPlainBob(puzzle, this.doPropagate, plainBobLeadEnds, [idxLE, idxLE+1], [idxHLE, idxHLE+1]);
     }
 
     return isChanged;
@@ -605,12 +605,12 @@ class DoNotMakeBadGuess extends Strategy {
     var isChanged = false;
     
     //Test out leadhead/end
-    var jdxLead = [1,1];
+    var jdxLead = [0,0];
     isChanged |= this.tryEachRow(puzzle, withPropagation, possibleLeads, idxLead, jdxLead);
     
     if(puzzle.options.doubleSymmetry) {
       //Test out half-leadhead/end
-      var possibleHeadLeads = possibleLeads.forEach(v => v.reverse);
+      var possibleHeadLeads = possibleLeads.map(function(v) {return v.reverse();});
       var jdxHalfLead = [puzzle.numBells-1, puzzle.numBells-1];
       isChanged |= this.tryEachRow(puzzle, withPropagation, possibleHeadLeads, idxHalfLead, jdxHalfLead);      
     }
@@ -624,24 +624,26 @@ class DoNotMakeBadGuess extends Strategy {
       if(checkRowPossible(puzzle.solution, idxRows[0], row)) {
         var puzzleWorking = copyGrid(puzzle);
         for(var jdx=0; jdx<puzzle.numBells; jdx++) {
-          fixBell(puzzleWorking, idxRows[0], jdx, row[jdx]);
+          fixBell(puzzleWorking.solution, idxRows[0], jdx, row[jdx]);
         }
         
         var startingFromKnownPoint = false;
-        var bell = treble;
+        var treble = 1;
         var direction = 1;
-        var posToRemove = trackBellTillJunction(puzzleWorking, bell, idxRows[0], jdxRows[0], idxRows[1], jdxRows[1], 
+        var posToRemove = trackBellTillJunction(puzzleWorking, treble, idxRows[0], jdxRows[0], idxRows[1], jdxRows[1], 
           direction, startingFromKnownPoint, withPropagation);
-        if(posToRemove.length > 0)
+        if(posToRemove.length == 0)
           idxValidRows.push(rdx);
       }
     }
     
     var isChanged = false;
-    if(idxValidRows.length == 1)
+    if(idxValidRows.length == 1) {
+      console.log("identified PB at " + idxRows[0] + ": " + possibleRows[idxValidRows[0]])
       for(var jdx=0; jdx<puzzle.numBells; jdx++)
-        isChanged |= fixBell(puzzle, idxRows[0], jdx, possibleRows[rdx][jdx]);
-        
+        isChanged |= fixBell(puzzle.solution, idxRows[0], jdx, possibleRows[idxValidRows[0]][jdx]);
+    }
+    
     return isChanged;
   }
   generatePlainBobLeadHeads(numBells) {
