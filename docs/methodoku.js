@@ -395,8 +395,10 @@ function takeStep(updateMessage=true) {
   
   updateGrid(false, true)
 
-  if(isSolved())
-    message += ". Solved!"
+  if(!checkSolutionValid(puzzle))
+    message += "Things have gone wrong."
+  else if (isSolved())
+    message += "Solved!"
   else if(!isChanged)
     message = "No progress made"
   
@@ -415,11 +417,21 @@ function setStatus(message) {
 
 function solveGrid() {
 
+  var countSolvedPrev = countSolvedBlows(puzzle);
+  var countRemainingPrev = countRemainingOptions(puzzle);
+
   var doContinue = true;
   while (doContinue)
   {
     var status = takeStep();
-    doContinue = status.isChanged;
+
+    var countSolved = countSolvedBlows(puzzle);
+    var countRemaining = countRemainingOptions(puzzle);
+
+    doContinue = status.isChanged && (countSolved != countSolvedPrev || countRemaining != countRemainingPrev);
+    
+    countRemainingPrev = countRemaining;
+    countSolvedPrev = countSolved; 
   }
   
   // Final step for cosmetic effect. 
@@ -610,15 +622,14 @@ function trackBellTillJunction(puzzle, bell, idx, jdx, idxOrig, jdxOrig, directi
     while(true) {
       var isChanged = false;
 
-      var relevantStrategies = [];
-      var relevantIndices = [1,2,5,4,3,7,6,10,16,11,17];
-      relevantIndices.forEach(i => relevantStrategies.push(strategies[i]));
-
-      for(var idxS = 0; idxS < relevantStrategies.length; idxS++)
-        if(!relevantStrategies[idxS].isRecursive && relevantStrategies[idxS].isActive(puzzleWorking) && isGlobalOK)
+      for(var idxS = 0; idxS < strategies.length; idxS++)
+        if(!strategies[idxS].isRecursive && strategies[idxS].isActive(puzzleWorking) && isGlobalOK)
         {
-          //console.log("Internal use of strategy: " + relevantStrategies[idxS].constructor.name);
-          isChanged |= relevantStrategies[idxS].step(puzzleWorking);
+          if(strategies[idxS].constructor.name == "NoNminus1thPlacesExceptUnderTreble")
+            continue
+          
+          //console.log("Internal use of strategy: " + strategies[idxS].constructor.name);
+          isChanged |= strategies[idxS].step(puzzleWorking);
           
           isValid &= checkSolutionValid(puzzleWorking);
       
