@@ -28,17 +28,6 @@ class AllWorkingExceptTreble extends Strategy {
   }
 }
 
-class UpdatePossibilities extends Strategy {
-  isActive(puzzle)
-  {
-    return true;
-  }
-  step(puzzle)
-  {
-    return updateGrid(false, true)
-  }
-}
-
 class OncePerRow extends Strategy {
  isActive(puzzle)
  {
@@ -223,7 +212,7 @@ class RemoveDeadEnds extends Strategy {
     
     for(var idx=0; idx<puzzle.numRows; idx++)
       for(var jdx=0; jdx<puzzle.numBells; jdx++) {
-        var possibleBells = puzzle.solution[idx][jdx];
+        var possibleBells = copy(puzzle.solution[idx][jdx]);
         if(!Array.isArray(possibleBells))
           possibleBells = [possibleBells];
 
@@ -690,7 +679,7 @@ class DoNotMakeBadGuess extends Strategy {
   }
 }
 
-class PalindromicSymmetryFull extends Strategy {
+class ApplyPalindromicSymmetryFull extends Strategy {
   isActive(puzzle)
   {
     return puzzle.options.palindromicSymmetry;
@@ -749,7 +738,7 @@ class PalindromicSymmetryFull extends Strategy {
   }
 }
 
-class DoubleSymmetryFull extends Strategy {
+class ApplyDoubleSymmetryFull extends Strategy {
   isActive(puzzle)
   {
     return puzzle.options.doubleSymmetry;
@@ -818,7 +807,7 @@ class DoubleSymmetryFull extends Strategy {
   }
 }
 
-class MirrorSymmetryFull extends Strategy {
+class ApplyMirrorSymmetryFull extends Strategy {
   isActive(puzzle)
   {
     return puzzle.options.mirrorSymmetry;

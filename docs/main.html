@@ -6,8 +6,8 @@
     <script type="text/javascript" src='tests.js'> </script>
 </head>
 <style>
-input text {
-width: 1000px;
+#status {
+width: 400px;
 }
 
 table, th, td {
@@ -44,6 +44,8 @@ td table td {
 <input type = "button" onclick = "createNewPuzzle()" value = "Create new puzzle">  
 <select id = "examplePuzzle" name = "Test puzzles">  
 <input type = "button" onclick = "loadPuzzle()" value = "Load example puzzle">  
+<input type = "button" onclick = "runAllLoadedPuzzles()" value = "Run all example puzzles">  
+<a download="testResults.txt" id="downloadlink" style="display: none">Download results</a>
 <br>
 <br>
 <label class="checkboxlabel">Number of rows</label>
@@ -102,6 +104,7 @@ td table td {
 <br>
 <input type = "button" onclick = "solveGrid()" value = "Solve">  
 <input type = "button" onclick = "takeStep()" value = "Take step">
+<br>
 <br>
 <label class="checkboxlabel">Status: </label>
 <input type = "text" id = "status" value = "">  

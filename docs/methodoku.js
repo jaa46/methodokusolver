@@ -17,6 +17,10 @@ function copyGrid(orig_board) {
   return newBoard;
 }
 
+function copy(orig) {
+  return JSON.parse(JSON.stringify(orig));
+}
+
 function intersect(array1, array2) {
   if(!Array.isArray(array1))
     array1 = [array1];
@@ -352,11 +356,14 @@ function createNewPuzzle() {
   updateGrid(true)
 }
 
-var strategies = [new AllWorkingExceptTreble(), new UpdatePossibilities(), new OncePerRow(), 
+var strategies = [new AllWorkingExceptTreble(), new OncePerRow(), 
   new OnlyOneOptionInRow(), new NoJumping(), new FillSquares(), new RemoveDeadEnds(), new AllDoubleChanges(), new NoLongPlaces(),
-  new NoNminus1thPlacesExceptUnderTreble(), new ApplyMirrorSymmetry(), new ApplyPalindromicSymmetry(),
-  new ApplyDoubleSymmetry(), new Is2OrNLeadEnd(), new NoShortCycles(), new DoNotMakeBadDecision(false), new DoNotMakeBadGuess(false), 
-  new PalindromicSymmetryFull(), new DoubleSymmetryFull(), new MirrorSymmetryFull(), new DoNotMakeBadDecision(true), new DoNotMakeBadGuess(true)];
+  new NoNminus1thPlacesExceptUnderTreble(), 
+  new ApplyPalindromicSymmetry(), new ApplyDoubleSymmetry(), new ApplyMirrorSymmetry(), 
+  new Is2OrNLeadEnd(), new NoShortCycles(), 
+  new DoNotMakeBadDecision(false), new DoNotMakeBadGuess(false), 
+  new ApplyPalindromicSymmetryFull(), new ApplyDoubleSymmetryFull(), new ApplyMirrorSymmetryFull(), 
+  new DoNotMakeBadDecision(true), new DoNotMakeBadGuess(true)];
 
 function takeStep(updateMessage=true) {
 
@@ -365,7 +372,7 @@ function takeStep(updateMessage=true) {
 
   var isChanged = false;
   var message = "";
-  
+    
   for(var idx = 0; idx < strategies.length; idx++)
     if (strategies[idx].isActive(puzzle))
     {
@@ -374,11 +381,14 @@ function takeStep(updateMessage=true) {
       isChanged = strategies[idx].step(puzzle);
       if (isChanged)
       {
-        message = "Success using: " + strategies[idx].constructor.name + " (" + countSolvedBlows() + " " + countRemainingOptions() + ")";
+        message = "Success using: " + strategies[idx].constructor.name + " (" + countSolvedBlows(puzzle) + " " + countRemainingOptions(puzzle) + ")";
         if (strategies[idx].doPropagate)
-          message += "(" + strategies[idx].doPropagate + ")";
-        if (idx!=1)
-          console.log(message)
+          message += " (withPropagation)";
+
+        if(saveOutput)
+          testResults += message + "\n";
+        console.log(message)
+
         break
       }
     }
@@ -386,11 +396,9 @@ function takeStep(updateMessage=true) {
   updateGrid(false, true)
 
   if(isSolved())
-    message = "Solved"
+    message += ". Solved!"
   else if(!isChanged)
-  {
     message = "No progress made"
-  }
   
   if(updateMessage)
     setStatus(message)
@@ -603,7 +611,7 @@ function trackBellTillJunction(puzzle, bell, idx, jdx, idxOrig, jdxOrig, directi
       var isChanged = false;
 
       var relevantStrategies = [];
-      var relevantIndices = [2,3,6,5,4,8,7,11,17,12,18];
+      var relevantIndices = [1,2,5,4,3,7,6,10,16,11,17];
       relevantIndices.forEach(i => relevantStrategies.push(strategies[i]));
 
       for(var idxS = 0; idxS < relevantStrategies.length; idxS++)

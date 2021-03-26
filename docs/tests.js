@@ -90,3 +90,45 @@ function addPuzzle(text, url) {
   });
   
 }
+
+var testResults = [];
+var saveOutput = false;
+function runAllLoadedPuzzles() {
+  testResults = [];
+  runTest = function() {
+    loadPuzzle();
+    solveGrid();
+  }
+  saveOutput = true;
+  var dropdown = document.getElementById("examplePuzzle");
+  for(var idx=0; idx<examplePuzzles.length; idx++) {
+    dropdown.selectedIndex = idx;
+    var puzzleName = dropdown.options[dropdown.selectedIndex].value;
+    testResults += puzzleName + "\n";
+    runTest();
+    testResults += "\n";
+  }
+  prepareResultsForDownload();
+  saveOutput = false;
+}
+
+function prepareResultsForDownload() {
+  var textFile = null,
+  makeTextFile = function (text) {
+    var data = new Blob([text], {type: 'text/plain'});
+
+    // If we are replacing a previously generated file we need to
+    // manually revoke the object URL to avoid memory leaks.
+    if (textFile !== null) {
+      window.URL.revokeObjectURL(textFile);
+    }
+
+    textFile = window.URL.createObjectURL(data);
+
+    return textFile;
+  };
+
+  var link = document.getElementById('downloadlink');
+  link.href = makeTextFile(testResults);
+  link.style.display = 'block';
+}
