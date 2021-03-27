@@ -578,6 +578,7 @@ function takeGuess(puzzle, numberOptions, withPropagation) {
   for(var idx=0; idx<puzzle.numRows; idx++)
     for(var jdx=0; jdx<puzzle.numBells; jdx++)
       if(numberOfPossibilities(puzzle.solution, idx, jdx) == numberOptions) {
+        //Record whether we're starting from a fixed blow or not
         var startingFromKnownPoint = numberOptions == 1;
         
         var bellOptions = puzzle.solution[idx][jdx];
@@ -587,21 +588,40 @@ function takeGuess(puzzle, numberOptions, withPropagation) {
           var idxStart = idx;
           for(var ddx=0; ddx<directions.length; ddx++) {
             var idxNew = iterateIndex(puzzle.solution, idxStart, directions[ddx]);
+            
+            //Avoid the case when we've reached the end of the grid
+            if(directions[ddx] * (idxNew - idxStart) <= 0)
+              continue
+            
+            //Find positions in this next row where this bell can ring
             var candidates = findOptionsInRow(puzzle.solution, bellOptions[bdx], idxNew, jdx);
             
             // If any of these possible blows have just one option remaining, it must be our bell
             if(candidates.some(jdx => numberOfPossibilities(puzzle.solution, idxNew, jdx) == 1))
               continue;
-              
+            
+            var isCandidatePossible = [];
             for(var cdx=0; cdx<candidates.length; cdx++) {
+              //Determine consequences of picking this candidate
               var posToRemove = trackBellTillJunction(puzzle, bellOptions[bdx], idxNew, candidates[cdx], idx, jdx, directions[ddx], 
-                startingFromKnownPoint, withPropagation);
+                withPropagation);
               
-              if(posToRemove.length > 0) {
+              if(startingFromKnownPoint && posToRemove.length > 0) {
                 console.log("Remove bell " + bellOptions[bdx] + " from " + posToRemove[0] + "," + posToRemove[1])
                 isChanged = removeBell(puzzle.solution, posToRemove[0], posToRemove[1], bellOptions[bdx]);
                 return isChanged;
               }
+
+              isCandidatePossible.push(posToRemove.length == 0);
+            }
+            
+            if(!startingFromKnownPoint && !isCandidatePossible.some(idx => idx)) {
+              //If we guessed a position initially and then all
+              //possibilities from there resulted in error, than
+              //the bell cannot be in this guessed location
+              console.log("Remove bell " + bellOptions[bdx] + " from " + idxStart + "," + jdx)
+              isChanged = removeBell(puzzle.solution, idxStart, jdx, bellOptions[bdx]);
+              return isChanged;
             }
           }
         }
@@ -610,8 +630,9 @@ function takeGuess(puzzle, numberOptions, withPropagation) {
   return isChanged;
 }
 
-function trackBellTillJunction(puzzle, bell, idx, jdx, idxOrig, jdxOrig, direction, startingFromKnownPoint, withPropagation) {
+function trackBellTillJunction(puzzle, bell, idx, jdx, idxOrig, jdxOrig, direction, withPropagation) {
   var puzzleWorking = copyGrid(puzzle);
+  puzzleWorking.solution[idxOrig][jdxOrig] = bell;
   puzzleWorking.solution[idx][jdx] = bell;
   var isValid = true;
   
@@ -625,9 +646,6 @@ function trackBellTillJunction(puzzle, bell, idx, jdx, idxOrig, jdxOrig, directi
       for(var idxS = 0; idxS < strategies.length; idxS++)
         if(!strategies[idxS].isRecursive && strategies[idxS].isActive(puzzleWorking) && isGlobalOK)
         {
-          if(strategies[idxS].constructor.name == "NoNminus1thPlacesExceptUnderTreble")
-            continue
-          
           //console.log("Internal use of strategy: " + strategies[idxS].constructor.name);
           isChanged |= strategies[idxS].step(puzzleWorking);
           
@@ -726,24 +744,32 @@ function trackBellTillJunction(puzzle, bell, idx, jdx, idxOrig, jdxOrig, directi
     
     //Check for long places: need to only make invalid if there's no possibility of leading or lying behind before or after
     var N = puzzleWorking.numBells;
-    if(startingFromKnownPoint && puzzleWorking.options.noLongPlaces && (direction*(idx-idxOrig)>0) && placeCount == 2 && 
+    if(puzzleWorking.options.noLongPlaces && (direction*(idxNext-idxPrevPrev)>0) && placeCount == 2 && 
       (jdx==1 && !(isPositionPossible(puzzleWorking.solution, idxNext, 0, bell) && isPositionPossible(puzzleWorking.solution, idxPrevPrev, 0, bell)) ||
       jdx==N-2 && !(isPositionPossible(puzzleWorking.solution, idxNext, N-1, bell) && isPositionPossible(puzzleWorking.solution, idxPrevPrev, N-1, bell))))
       isValid = false;
-      
+    
+    //TODO: Tidy this up
+    var idxPlaceStart = idxNext;
     var jdxPrev = jdxOrig;
     while ((candidates.length == 1) && idxNext != idxOrigin){
       
-      placeCount = jdx == candidates[0] ? placeCount+1 : 1;
+      if(jdx == candidates[0] && direction*(idxNext - idxPlaceStart) > 0) {
+        placeCount++;
+      }
+      else {
+        placeCount = 1;
+        idxPlaceStart = idxNext;
+      }
       
-      if (startingFromKnownPoint && puzzleWorking.options.noLongPlaces && (direction*(idxNextNext-idxOrig)>0) && placeCount > 2)
+      if (puzzleWorking.options.noLongPlaces && (direction*(idxNextNext-idxPlaceStart)>0) && placeCount > 2)
         isValid = false;
         
-      if (startingFromKnownPoint && puzzleWorking.options.noLongPlaces && (direction*(idxNextNext-idxOrig)>0) && placeCount == 2 &&
+      if (puzzleWorking.options.noLongPlaces && (direction*(idxNextNext-idxPlaceStart)>0) && placeCount == 2 &&
         (jdx==1 && !isPositionPossible(puzzleWorking.solution, idxNextNext, 0, bell) || jdx == N-2 && !isPositionPossible(puzzleWorking.solution, idxNextNext, N-1, bell)))
         isValid = false;
         
-      if (startingFromKnownPoint && puzzleWorking.options.noLongPlaces && (direction*(idxNextNext-idxOrig)>0)) {
+      if (puzzleWorking.options.noLongPlaces && (direction*(idxNextNext-idxPlaceStart)>0)) {
         var jdxs = [jdxPrev, jdx, candidates[0]];
         if (compare(jdxs, [1,1,2]) || compare(jdxs, [N-3,N-2,N-2]))
           isValid = false;

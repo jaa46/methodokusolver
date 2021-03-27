@@ -554,7 +554,7 @@ class DoNotMakeBadDecision extends Strategy {
   }
   step(puzzle)
   {
-    //Only guess from fixed bells, with no propagation
+    //Only guess from fixed bells
     var isChanged = takeGuess(puzzle, 1, this.doPropagate);
     return isChanged;
   }
@@ -572,7 +572,8 @@ class DoNotMakeBadGuess extends Strategy {
   }
   step(puzzle)
   {
-    //Guess from blows with 2 remaining options, with no propagation
+    //Guess the bell for each blows with up to 2 possibilities, and test out
+    //each of the options to see if a guess can be ruled out
     var isChanged = takeGuess(puzzle, 2, this.doPropagate)
     
     //Guess plain bob leadends
@@ -616,11 +617,10 @@ class DoNotMakeBadGuess extends Strategy {
           fixBell(puzzleWorking.solution, idxRows[0], jdx, row[jdx]);
         }
         
-        var startingFromKnownPoint = false;
         var treble = 1;
         var direction = 1;
         var posToRemove = trackBellTillJunction(puzzleWorking, treble, idxRows[0], jdxRows[0], idxRows[1], jdxRows[1], 
-          direction, startingFromKnownPoint, withPropagation);
+          direction, withPropagation);
         if(posToRemove.length == 0)
           idxValidRows.push(rdx);
       }
@@ -628,7 +628,7 @@ class DoNotMakeBadGuess extends Strategy {
     
     var isChanged = false;
     if(idxValidRows.length == 1) {
-      console.log("identified PB at " + idxRows[0] + ": " + possibleRows[idxValidRows[0]])
+      console.log("identified PB row at " + idxRows[0] + ": " + possibleRows[idxValidRows[0]])
       for(var jdx=0; jdx<puzzle.numBells; jdx++)
         isChanged |= fixBell(puzzle.solution, idxRows[0], jdx, possibleRows[idxValidRows[0]][jdx]);
     }
