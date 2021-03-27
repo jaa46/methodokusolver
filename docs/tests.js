@@ -19,24 +19,41 @@ function loadTests() {
             }
         }
 
-        for(var i=0; i<files.length; i++) {
-          var f = new XMLHttpRequest();
-          f.open("GET", directory + "/" + files[i], false);
-          f.onreadystatechange = function ()
-          {
-            if(f.readyState === 4)
+        if(files.length ==0) {
+          tidyUp();
+        }
+        else {
+          for(var i=0; i<files.length; i++) {
+            var f = new XMLHttpRequest();
+            f.open("GET", directory + "/" + files[i], false);
+            f.onreadystatechange = function ()
             {
-              if(f.status === 200 || f.status == 0)
+              if(f.readyState === 4)
               {
-                  var res = f.responseText;
-                  addPuzzle(res, f.responseURL);
+                if(f.status === 200 || f.status == 0)
+                {
+                    var res = f.responseText;
+                    addPuzzle(res, f.responseURL);
+                }
               }
             }
+            f.send(null);
           }
-          f.send(null);
         }
     };
+    xmlHttp.onerror = tidyUp;
     xmlHttp.send(null);
+
+    function tidyUp(e) {
+          var b = document.getElementById('loadPuzzle');
+          b.style.display = 'none';
+          
+          b = document.getElementById('runExamples');
+          b.style.display = 'none';
+          
+          b = document.getElementById('examplePuzzle');
+          b.style.display = 'none';          
+    };
 }
 
 function addPuzzle(text, url) {
