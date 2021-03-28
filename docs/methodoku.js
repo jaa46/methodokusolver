@@ -24,7 +24,16 @@ function blankPuzzle(numRows, numBells) {
   };
 }
 
-function buildPuzzle() {
+function resetPuzzle() {
+setStatus("")
+puzzle.solution = [];
+puzzle.optionsDerived = [];
+
+}
+ 
+function buildStartingSolution() {
+
+resetPuzzle();
 
 var numBells = puzzle.numBells;
 var numRows = puzzle.numRows;
@@ -50,15 +59,13 @@ for(var row = 0; row < numRows; row++)
 }
 
 function allOptions(numBells) {
-var allOptions = [];
+  var allOptions = [];
   var lowEnd = 1;
   var highEnd = numBells;
   return integerRange(lowEnd, highEnd);
 }
 
-function updateGrid(rebuild=false, showPossibilities=false) {
-  
-  var board = puzzle.solution;
+function updateGrid(rebuild=false) {
   
   if(rebuild)
     buildGrid(puzzle.numRows, puzzle.numBells);
@@ -67,8 +74,7 @@ function updateGrid(rebuild=false, showPossibilities=false) {
 
   var myElement = document.getElementById("grid");
   for(var i=0; i<puzzle.numRows; i++)
-    for(var j=0; j<puzzle.numBells; j++)
-    {
+    for(var j=0; j<puzzle.numBells; j++) {
       var tbl = document.getElementById("options" + i + "_" + j);
 
       var numOptionRows = puzzle.numBells > 6 ? 3 : 2;
@@ -77,21 +83,22 @@ function updateGrid(rebuild=false, showPossibilities=false) {
       var impossibleColour = "#D3D3D3";
       var countPossibilitiesPrevious = 0;
 
-      if(showPossibilities)
-      {
-        if(!tbl)
-        {
-          if(Array.isArray(board[i][j]))
-          {
+      var board = puzzle.solution;
+      if(board.length > 0) {
+        
+        //Remove residual boldness if this blow isn't specified in initial grid
+        if(puzzle.start[i][j] == 0)
+          grid.rows[i].cells[j].style.fontWeight = "normal";
+        
+        if(!tbl) {
+          if(Array.isArray(board[i][j])) {
             var tbl = document.createElement('table');
             tbl.setAttribute("id", "options" + i + "_" + j);
             grid.rows[i].cells[j].append(tbl);
 
-            for(var r=0; r < numOptionRows; r++)
-            {
+            for(var r=0; r < numOptionRows; r++) {
               var row = tbl.insertRow(r);
-              for(var c=0; c < numOptionCols; c++)
-              { 
+              for(var c=0; c < numOptionCols; c++) { 
                 var cell = row.insertCell();
               }
             }
@@ -102,55 +109,48 @@ function updateGrid(rebuild=false, showPossibilities=false) {
           else
             countPossibilitiesPrevious = 1;
         }
-        else
-        {
+        else {
           for(var r=0; r<tbl.rows.length; r++)
             for(var c=0; c<tbl.rows[r].cells.length; c++)
              if(isValidBellStr(tbl.rows[r].cells[c].innerText) && tbl.rows[r].cells[c].style.color != impossibleColour)
                 countPossibilitiesPrevious++;
         }
       
-        if(countPossibilitiesPrevious > 1)
-        {
+        if(countPossibilitiesPrevious > 1) {
           for(var r=0; r < numOptionRows; r++)
-            for(var c=0; c < numOptionCols; c++)
-            { 
+            for(var c=0; c < numOptionCols; c++) { 
               var bell = r * numOptionCols + c + 1;
-              if(board[i][j] == bell || Array.isArray(board[i][j]) && board[i][j].indexOf(bell) > -1)
-              {
-                isChanged = isChanged | setBell(tbl.rows[r].cells[c], num2bell(bell));
+              if(board[i][j] == bell || Array.isArray(board[i][j]) && board[i][j].indexOf(bell) > -1) {
+                isChanged |= setBell(tbl.rows[r].cells[c], num2bell(bell));
               }
-              else
-              {
-                if(tbl.rows[r].cells[c].innerText == num2bell(bell))
-                {
-                  if(tbl.rows[r].cells[c].style.color == "")
-                  {
+              else {
+                if(tbl.rows[r].cells[c].innerText == num2bell(bell)) {
+                  if(tbl.rows[r].cells[c].style.color == "") {
                     tbl.rows[r].cells[c].style.color = impossibleColour;
                     isChanged = true;
                   }
-                  else
-                  {
-                    isChanged = isChanged | setBell(tbl.rows[r].cells[c], "");
+                  else {
+                    isChanged |= setBell(tbl.rows[r].cells[c], "");
                   }
                 }
               }
             }
         }
-        else
-        {
-          isChanged = isChanged | setBell(grid.rows[i].cells[j], num2bell(board[i][j]));
+        else {
+          isChanged |= setBell(grid.rows[i].cells[j], num2bell(board[i][j]));
         }
       }
-      else
-      {
-        if(!Array.isArray(board[i][j]))
-        {
-          grid.rows[i].cells[j].innerHTML = num2bell(board[i][j]);
-          
-          // Make initially fixed bells as bold
-          if(rebuild)
-            grid.rows[i].cells[j].style.fontWeight = "bold"; 
+      
+      //No solution yet - show initial puzzle
+      else {
+        // Show initially fixed bells in bold
+        if(puzzle.start[i][j] > 0) {
+          grid.rows[i].cells[j].innerHTML = num2bell(puzzle.start[i][j]);
+          grid.rows[i].cells[j].style.fontWeight = "bold"; 
+        }
+        else {
+          grid.rows[i].cells[j].innerHTML = "";
+          grid.rows[i].cells[j].style.fontWeight = "normal"; 
         }
       }
     }
@@ -233,12 +233,33 @@ function updatePuzzleFromGrid() {
       var tbl = document.getElementById("options" + i + "_" + j);
       if(!tbl)
       {
-        if(grid.rows[i].cells[j].innerText)
-          // User has specified a bell
-          puzzle.solution[i][j] = bell2num(grid.rows[i].cells[j].innerText);
-        else
-          // This blow is free
-          puzzle.solution[i][j] = allOptions(puzzle.numBells);
+        if(puzzle.solution.length > 0) {
+          if(grid.rows[i].cells[j].innerText)
+            // User has specified a bell
+            puzzle.solution[i][j] = bell2num(grid.rows[i].cells[j].innerText);
+          else
+            // This blow is free
+            puzzle.solution[i][j] = allOptions(puzzle.numBells);
+        }
+        else {
+          if(grid.rows[i].cells[j].innerText.length > 0) {
+            // User has specified a bell
+            var bell = bell2num(grid.rows[i].cells[j].innerText);
+            if(bell == "?") {
+              grid.rows[i].cells[j].innerText = "";
+              console.log("Invalid bell specified")
+
+              // Declare this blow to be free
+              puzzle.start[i][j] = 0;
+            }
+            else
+              puzzle.start[i][j] = bell;
+            
+          }
+          else
+            // This blow is free
+            puzzle.start[i][j] = 0;
+        }
       }
       else
       {
@@ -267,7 +288,7 @@ function updatePuzzleFromGrid() {
 
 function isValidBellStr(str){
   var special = ["0", "E", "T"];
-  return str && (str >= '1' && str <= '9' || special.indexOf(str) >= 0);
+  return str.length == 1 && (str >= '1' && str <= '9' || special.indexOf(str) >= 0);
 }
 
 
@@ -280,7 +301,6 @@ var puzzle = [];
 function loadPuzzle() {
   var dropdown = document.getElementById("examplePuzzle");
   puzzle = copyGrid(examplePuzzles[dropdown.selectedIndex]);
-  buildPuzzle();
   updateControls();
   updateGrid(true)
 }
@@ -289,8 +309,17 @@ function createNewPuzzle() {
   var numRows = document.getElementById("numberOfRows").value;
   var numBells = document.getElementById("numberOfBells").value;
   puzzle = blankPuzzle(numRows, numBells);
-  buildPuzzle();
   updateGrid(true)
+}
+
+function restartPuzzle() {
+
+  resetPuzzle();
+  
+  if(puzzle.start.length > 0)
+    updateGrid(false);
+  else
+    console.log("Puzzle not started yet")
 }
 
 var strategies = [new AllWorkingExceptTreble(), new OncePerRow(), 
@@ -306,6 +335,9 @@ function takeStep(updateMessage=true) {
 
   // Pick up changes made by the user
   updatePuzzleFromGrid();
+
+  if(puzzle.solution.length == 0)
+    buildStartingSolution();
 
   var isChanged = false;
   var message = "";
@@ -329,9 +361,9 @@ function takeStep(updateMessage=true) {
         break
       }
     }
-  
-  updateGrid(false, true)
 
+  updateGrid(false)
+  
   if(!checkSolutionValid(puzzle))
     message += "Things have gone wrong."
   else if (isSolved())
@@ -353,7 +385,13 @@ function setStatus(message) {
 }
 
 function solveGrid() {
+  
+  // Pick up changes made by the user
+  updatePuzzleFromGrid();
 
+  if(puzzle.solution.length == 0)
+    buildStartingSolution();
+  
   var countSolvedPrev = countSolvedBlows(puzzle);
   var countRemainingPrev = countRemainingOptions(puzzle);
 
@@ -373,7 +411,7 @@ function solveGrid() {
   
   // Final step for cosmetic effect. 
   // Currently keep solutions shown in 'possibility' format for one further step to avoid jumping around too much.
-  takeStep(false);
+  updateGrid(false)
 }
 
 function countSolvedBlows() {
