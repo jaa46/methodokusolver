@@ -8,20 +8,40 @@ class Strategy {
   }
 }
 
-class AllWorkingExceptTreble extends Strategy {
+class WorkingBells extends Strategy {
   isActive(puzzle)
   {
-    return puzzle.options.allWorkingExceptTreble;
+    return puzzle.options.allWorkingExceptTreble || puzzle.options.twoHuntBells || puzzle.options.numberOfLeads > 0;
   }
   step(puzzle)
   {
     var isChanged = false;
     
     var treble = 1;
-    isChanged = isChanged | fixBell(puzzle.solution, puzzle.numRows-1, 0, treble);
     
-    for(var b=2; b<=puzzle.numBells; b++) {
-      isChanged = isChanged | removeBell(puzzle.solution, puzzle.numRows-1, b-1, b);
+    //If an N-1 lead course specified, see if treble has been fixed at lead end
+    if(puzzle.options.numberOfLeads == puzzle.numBells-1) {
+    var info = isPositionDetermined(puzzle.solution, puzzle.numRows-1, 0);
+    if(info.isFixed && info.bell == treble)
+      //<MODIFYOPTIONS>
+      puzzle.options.allWorkingExceptTreble = true;
+    }
+    
+    //Fix treble if not working
+    if (puzzle.options.allWorkingExceptTreble)
+      isChanged |= fixBell(puzzle.solution, puzzle.numRows-1, 0, treble);
+    
+    //Fix two if two hunt bells specified
+    if(puzzle.options.twoHuntBells)
+      isChanged |= fixBell(puzzle.solution, puzzle.numRows-1, 1, 2);
+
+    //Prevent other bells coming home after one lead if appropriate
+    if(puzzle.options.twoHuntBells || allWorkingExceptTreble) {
+      var firstWorkingBell = findFirstWorkingBell(puzzle);
+      if (firstWorkingBell > 0)
+        for(var b=firstWorkingBell; b<=puzzle.numBells; b++) {
+          isChanged |= removeBell(puzzle.solution, puzzle.numRows-1, b-1, b);
+        }      
     }
     
     return isChanged;
@@ -310,6 +330,46 @@ class NoNminus1thPlacesExceptUnderTreble extends Strategy {
   }
 }
 
+class RightPlace extends Strategy {
+  isActive(puzzle) {
+    return puzzle.options.rightPlace
+  }
+  step(puzzle) {
+    var isChanged = false;
+    
+    for(var idx=0; idx<puzzle.numRows-1; idx+=2)
+      for(var jdx=0; jdx<puzzle.numBells-1; jdx+=2) {
+        isChanged |= makeBlowsConsistent(puzzle.solution, idx, jdx, idx+1, jdx+1);
+        isChanged |= makeBlowsConsistent(puzzle.solution, idx, jdx+1, idx+1, jdx);
+      }
+      
+    return isChanged;
+  }
+}
+
+class NumberOfHuntBells extends Strategy {
+  isActive(puzzle) {
+    return puzzle.options.numberOfHuntBells > 0
+  }
+  step(puzzle) {
+    var isChanged = false;
+    
+    var totaNumberPossibleHunts = 0;
+    for(var jdx=0; jdx<puzzle.numBells; jdx++)
+      if(isPositionPossible(puzzle.solution, puzzle.numRows-1, jdx, jdx+1))
+        totaNumberPossibleHunts++;
+    
+    if (totaNumberPossibleHunts == puzzle.options.numberOfHuntBells) {
+      //All of the possible hunt bells must be
+      for(var jdx=0; jdx<puzzle.numBells; jdx++)
+        if(isPositionPossible(puzzle.solution, puzzle.numRows-1, jdx, jdx+1))
+          isChanged |= fixBell(puzzle.solution, puzzle.numRows-1, jdx, jdx+1);
+    }
+    
+    return isChanged;
+  }
+}
+
 class ApplyMirrorSymmetry extends Strategy {
   isActive(puzzle) {
     return puzzle.options.mirrorSymmetry
@@ -528,8 +588,16 @@ class NoShortCycles extends Strategy {
     //TODO: Generalise this to longer-cycles
     var isChanged = false;
     
+    var firstWorkingBell = findFirstWorkingBell(puzzle);
+    if (firstWorkingBell < 0)
+      return;
+    
+    //Check for one-cycles
+    for(var bell=firstWorkingBell; bell<=puzzle.numBells; bell++)
+      isChanged |= removeBell(puzzle.solution, puzzle.numRows-1, bell-1, bell);
+    
     //Check for two cycles
-    for(var bell = 2; bell<=puzzle.numBells; bell++) {
+    for(var bell = firstWorkingBell; bell<=puzzle.numBells; bell++) {
       // If we know where this bell is at the lead head, its new place bell
       // cannot become this bell's original place bell.
       var info = isFixedInRow(puzzle.solution, bell, puzzle.numRows-1);
@@ -541,6 +609,186 @@ class NoShortCycles extends Strategy {
     return isChanged;
   }
 }
+
+class SurpriseMinor extends Strategy {
+  isActive(puzzle) {
+    return puzzle.numBells == 6 && puzzle.options.surprise;
+  }
+  step(puzzle) {
+    var isChanged = false;
+    isChanged |= applyTrebleBobTreble(puzzle);
+    
+    var idx4ths = [3,4,19,20];
+    var idx3rds = [7,8,15,16];
+
+    //4ths in both locations
+    isChanged |= makeBlowsConsistent(puzzle.solution, idx4ths[0], 3, idx4ths[1], 3);
+    isChanged |= makeBlowsConsistent(puzzle.solution, idx4ths[2], 3, idx4ths[3], 3);
+    //3rds in both locations
+    isChanged |= makeBlowsConsistent(puzzle.solution, idx3rds[0], 2, idx3rds[1], 2);
+    isChanged |= makeBlowsConsistent(puzzle.solution, idx3rds[2], 2, idx3rds[3], 2);
+  }
+}
+
+class DelightMinor extends Strategy {
+  isActive(puzzle) {
+    return puzzle.numBells == 6 && puzzle.options.delight;
+  }
+  step(puzzle) {
+    var isChanged = false;
+    isChanged |= applyTrebleBobTreble(puzzle);
+    
+    var idx4ths = [3,4,19,20];
+    var idx3rds = [7,8,15,16];
+
+    var is4thsPossible = areBlowsConsistent(puzzle.solution, idx4ths[0], 3, idx4ths[1], 3) &&
+      areBlowsConsistent(puzzle.solution, idx4ths[2], 3, idx4ths[3], 3);
+    var is3rdsPossible = areBlowsConsistent(puzzle.solution, idx3rds[0], 2, idx3rds[1], 2) &&
+      areBlowsConsistent(puzzle.solution, idx3rds[2], 2, idx3rds[3], 2);
+    
+    if(is4thsPossible && !is3rdsPossible) {
+      // Make 4ths
+      isChanged |= makeBlowsConsistent(puzzle.solution, idx4ths[0], 3, idx4ths[1], 3);
+      isChanged |= makeBlowsConsistent(puzzle.solution, idx4ths[2], 3, idx4ths[3], 3);
+      
+      // Ensure hunting in 2-3 instead of 3rds
+      isChanged |= makeBlowsConsistent(puzzle.solution, idx3rds[0], 1, idx3rds[1], 2);
+      isChanged |= makeBlowsConsistent(puzzle.solution, idx3rds[0], 2, idx3rds[1], 1);
+      isChanged |= makeBlowsConsistent(puzzle.solution, idx3rds[2], 1, idx3rds[3], 2);      
+      isChanged |= makeBlowsConsistent(puzzle.solution, idx3rds[2], 2, idx3rds[3], 1);      
+    }
+    else if(is3rdsPossible && !is4thsPossible) {
+      // Make 3rds
+      isChanged |= makeBlowsConsistent(puzzle.solution, idx3rds[0], 2, idx3rds[1], 2);
+      isChanged |= makeBlowsConsistent(puzzle.solution, idx3rds[2], 2, idx3rds[3], 2);
+      
+      // Ensure hunting in 4-5 instead of 4ths
+      isChanged |= makeBlowsConsistent(puzzle.solution, idx4ths[0], 3, idx4ths[1], 4);
+      isChanged |= makeBlowsConsistent(puzzle.solution, idx4ths[0], 4, idx4ths[1], 3);
+      isChanged |= makeBlowsConsistent(puzzle.solution, idx4ths[2], 3, idx4ths[3], 4);      
+      isChanged |= makeBlowsConsistent(puzzle.solution, idx4ths[2], 4, idx4ths[3], 3);      
+    }
+    
+    if(!is3rdsPossible && !is4thsPossible)
+      console.log("Things have gone wrong with delight places");
+      
+    return isChanged;
+  }
+}
+
+class TrebleBobMinor extends Strategy {
+  isActive(puzzle) {
+    return puzzle.numBells == 6 && puzzle.options.trebleBob;
+  }
+  step(puzzle) {
+    var isChanged = false;
+    isChanged |= applyTrebleBobTreble(puzzle);
+    
+    var idx4ths = [3,4,19,20];
+    var idx3rds = [7,8,15,16];
+
+    // Ensure hunting in 2-3 instead of 3rds
+    isChanged |= makeBlowsConsistent(puzzle.solution, idx3rds[0], 1, idx3rds[1], 2);
+    isChanged |= makeBlowsConsistent(puzzle.solution, idx3rds[0], 2, idx3rds[1], 1);
+    isChanged |= makeBlowsConsistent(puzzle.solution, idx3rds[2], 1, idx3rds[3], 2);      
+    isChanged |= makeBlowsConsistent(puzzle.solution, idx3rds[2], 2, idx3rds[3], 1);      
+
+    // Ensure hunting in 4-5 instead of 4ths
+    isChanged |= makeBlowsConsistent(puzzle.solution, idx4ths[0], 3, idx4ths[1], 4);
+    isChanged |= makeBlowsConsistent(puzzle.solution, idx4ths[0], 4, idx4ths[1], 3);
+    isChanged |= makeBlowsConsistent(puzzle.solution, idx4ths[2], 3, idx4ths[3], 4);      
+    isChanged |= makeBlowsConsistent(puzzle.solution, idx4ths[2], 4, idx4ths[3], 3);
+    
+    return isChanged;
+  }
+}
+
+
+class UpTo2PlacesPerChange extends Strategy {
+  isActive(puzzle) {
+    return puzzle.options.atMost2PlacesPerChange;
+  }
+  step(puzzle) {
+    var isChanged = false;
+    
+    for(var idx=0; idx<puzzle.numRows-1; idx++) {
+      //Count the number of places per change
+      var placeCount = 0;
+      for(var jdx=0; jdx<puzzle.numBells; jdx++) {
+        var info1 = isPositionDetermined(puzzle.solution, idx, jdx);
+        var info2 = isPositionDetermined(puzzle.solution, idx+1, jdx);
+        if(info1.isFixed && info2.isFixed && info1.bell == info2.bell)
+          placeCount++;
+      }
+      
+      //If at limit, prevent further places
+      if (placeCount == 2) {
+        for(var jdx=0; jdx<puzzle.numBells; jdx++) {
+          var info1 = isPositionDetermined(puzzle.solution, idx, jdx);
+          var info2 = isPositionDetermined(puzzle.solution, idx+1, jdx);
+          if(info1.isFixed && !info2.isFixed)
+            isChanged |= removeBell(puzzle.solution, idx+1, jdx, info1.bell);
+          }
+      }
+      
+      if(placeCount > 2){
+        //Not good        
+      }
+    }
+    
+    return isChanged;
+  }
+}
+
+class ConsecutivePlaceLimit extends Strategy {
+  isActive(puzzle) {
+    return puzzle.options.consecutivePlaceLimit > 0;
+  }
+  step(puzzle) {
+    var isChanged = false;
+    
+    var limit = puzzle.options.consecutivePlaceLimit;
+    for(var idx=0; idx<puzzle.numRows-1; idx++)
+      for(var jdx=0; jdx<puzzle.numBells; jdx++) {
+        // Is a place made?
+        var info1 = isPositionDetermined(puzzle.solution, idx, jdx);
+        var info2 = isPositionDetermined(puzzle.solution, idx+1, jdx);
+        if(info1.isFixed && info2.isFixed && info1.bell == info2.bell)
+          if(limit == 0) {
+            if(jdx > 1) {
+              // Ensure no place to the left
+              isChanged |= makeBlowsConsistent(puzzle.solution, idx, jdx-2, jdx+1, jdx-1);
+              isChanged |= makeBlowsConsistent(puzzle.solution, idx, jdx-1, jdx+1, jdx-2);
+            }
+            if(jdx < puzzle.numBells-2) {
+              // Ensure no place to the right
+              isChanged |= makeBlowsConsistent(puzzle.solution, idx, jdx+2, jdx+1, jdx+1);
+              isChanged |= makeBlowsConsistent(puzzle.solution, idx, jdx+1, jdx+1, jdx+2);
+            }
+          }
+          else if(limit == 2 && jdx<puzzle.numBells-1) {
+            //Is an adjacent place to the right also made?
+            var info3 = isPositionDetermined(puzzle.solution, idx, jdx+1);
+            var info4 = isPositionDetermined(puzzle.solution, idx+1, jdx+1);
+            if(info3.isFixed && info4.isFixed && info3.bell == info4.bell) {
+              //Prevent places either side of these two places
+              if(jdx > 2) {
+                // Ensure no place to the left
+                isChanged |= makeBlowsConsistent(puzzle.solution, idx, jdx-2, jdx+1, jdx-1);
+                isChanged |= makeBlowsConsistent(puzzle.solution, idx, jdx-1, jdx+1, jdx-2);
+              }
+              if(jdx < puzzle.numBells-3) {
+                // Ensure no place to the right
+                isChanged |= makeBlowsConsistent(puzzle.solution, idx, jdx+3, jdx+1, jdx+2);
+                isChanged |= makeBlowsConsistent(puzzle.solution, idx, jdx+2, jdx+1, jdx+3);
+              }
+            }
+          }
+      } 
+    
+    return isChanged;
+  }  
+} 
 
 class DoNotMakeBadDecision extends Strategy {
   constructor(doPropagate) {
@@ -581,36 +829,52 @@ class DoNotMakeBadGuess extends Strategy {
       var plainBobLeadHeads = this.generatePlainBobLeadHeads(puzzle.numBells);
       var idxHLH = Math.floor(puzzle.numRows/2);
       var idxLH = puzzle.numRows - 1;
-      isChanged |= this.guessPlainBob(puzzle, this.doPropagate, plainBobLeadHeads, [idxLH, idxLH-1], [idxHLH, idxHLH-1]);
+      isChanged |= this.guessLE_HL(puzzle, this.doPropagate, plainBobLeadHeads, [idxLH, idxLH-1], [idxHLH, idxHLH-1], -1);
 
-      var plainBobLeadEnds = this.generatePlainBobLeadEnds(puzzle.numBells);
-      var idxHLE = Math.floor(puzzle.numRows/2) - 1;
-      var idxLE = puzzle.numRows - 2;
-      isChanged |= this.guessPlainBob(puzzle, this.doPropagate, plainBobLeadEnds, [idxLE, idxLE+1], [idxHLE, idxHLE+1]);
+      if(puzzle.options.palindromicSymmetry) {
+        var plainBobLeadEnds = this.generatePlainBobLeadEnds(puzzle.numBells);
+        var idxHLE = Math.floor(puzzle.numRows/2) - 1;
+        var idxLE = puzzle.numRows - 2;
+        isChanged |= this.guessLE_HL(puzzle, this.doPropagate, plainBobLeadEnds, [idxLE, idxLE+1], [idxHLE, idxHLE+1], +1);
+      }
+    }
+
+    //Guess cyclic leadends
+    if(puzzle.options.cyclicLeadEnd) {
+      var cyclicLeadHeads = this.generateCyclicLeadHeads(puzzle.numBells);
+      var idxHLH = Math.floor(puzzle.numRows/2);
+      var idxLH = puzzle.numRows - 1;
+      isChanged |= this.guessLE_HL(puzzle, this.doPropagate, cyclicLeadHeads, [idxLH, idxLH-1], [idxHLH, idxHLH-1], -1);
     }
 
     return isChanged;
   }
-  guessPlainBob(puzzle, withPropagation, possibleLeads, idxLead, idxHalfLead) {
+  guessLE_HL(puzzle, withPropagation, possibleLeads, idxLead, idxHalfLead, direction) {
     var isChanged = false;
     
     //Test out leadhead/end
     var jdxLead = [0,0];
-    isChanged |= this.tryEachRow(puzzle, withPropagation, possibleLeads, idxLead, jdxLead);
+    isChanged |= this.tryEachRow(puzzle, withPropagation, possibleLeads, idxLead, jdxLead, direction);
     
     if(puzzle.options.doubleSymmetry) {
       //Test out half-leadhead/end
       var possibleHeadLeads = possibleLeads.map(function(v) {return v.reverse();});
       var jdxHalfLead = [puzzle.numBells-1, puzzle.numBells-1];
-      isChanged |= this.tryEachRow(puzzle, withPropagation, possibleHeadLeads, idxHalfLead, jdxHalfLead);      
+      isChanged |= this.tryEachRow(puzzle, withPropagation, possibleHeadLeads, idxHalfLead, jdxHalfLead, direction);      
     }
     
     return isChanged;
   }
-  tryEachRow(puzzle, withPropagation, possibleRows, idxRows, jdxRows) {
+  tryEachRow(puzzle, withPropagation, possibleRows, idxRows, jdxRows, direction) {
     var idxValidRows = [];
     for(var rdx=0; rdx<possibleRows.length; rdx++) {
       var row = possibleRows[rdx];
+      
+      if(idxRows[0] == puzzle.numRows-1 && compareStrict(row, integerRange(1, puzzle.numBells))) {
+        //Can't have rounds as leadhead by convention
+        continue;
+      }
+      
       if(checkRowPossible(puzzle.solution, idxRows[0], row)) {
         var puzzleWorking = copyGrid(puzzle);
         for(var jdx=0; jdx<puzzle.numBells; jdx++) {
@@ -618,8 +882,7 @@ class DoNotMakeBadGuess extends Strategy {
         }
         
         var treble = 1;
-        var direction = 1;
-        var posToRemove = trackBellTillJunction(puzzleWorking, treble, idxRows[0], jdxRows[0], idxRows[1], jdxRows[1], 
+        var posToRemove = trackBellTillJunction(puzzleWorking, treble, idxRows[1], jdxRows[1], idxRows[0], jdxRows[0], 
           direction, withPropagation);
         if(posToRemove.length == 0)
           idxValidRows.push(rdx);
@@ -628,7 +891,7 @@ class DoNotMakeBadGuess extends Strategy {
     
     var isChanged = false;
     if(idxValidRows.length == 1) {
-      console.log("identified PB row at " + idxRows[0] + ": " + possibleRows[idxValidRows[0]])
+      console.log("identified leadend/halflead row at " + idxRows[0] + ": " + possibleRows[idxValidRows[0]])
       for(var jdx=0; jdx<puzzle.numBells; jdx++)
         isChanged |= fixBell(puzzle.solution, idxRows[0], jdx, possibleRows[idxValidRows[0]][jdx]);
     }
@@ -676,6 +939,24 @@ class DoNotMakeBadGuess extends Strategy {
     }
     var leadheads = leadends.map(function(r){return perm.map(function(p) {return r[p-1];} );});
     return leadheads;
+  }
+  generateCyclicLeadHeads(numBells) {
+    // 134562
+    var firstLead = integerRange(1, numBells);
+    firstLead.splice(1,1); // remove 2
+    firstLead.push(2); // add 2 at the end
+    
+    var collection = [];
+    collection.push(firstLead);
+    
+    for(var ldx=1; ldx<numBells-1; ldx++) {
+      var prevLead = collection[ldx-1];
+      var newLead = [];
+      collection[0].forEach(bell => newLead.push(prevLead[bell-1]));
+      collection.push(newLead);
+    }
+    
+    return collection;
   }
 }
 

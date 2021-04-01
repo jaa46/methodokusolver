@@ -122,7 +122,10 @@ function addPuzzle(text, url) {
   
   var numRows = 0;
   while(index < lines.length && lines[index].length > 0) {
-
+    
+    if(lines[index][0] == "#" || lines[index].length == 1)
+      break;
+      
     var row = [];
     for(var jdx=0; jdx<numBells; jdx++) {
       row.push(bell2num(lines[index][jdx]));
