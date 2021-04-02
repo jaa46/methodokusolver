@@ -396,30 +396,46 @@ class ApplyPalindromicSymmetry extends Strategy {
     return puzzle.options.palindromicSymmetry
   }
   step(puzzle) {
-    //TODO: Handle symmetry in twin-hunt methods
-
     var isChanged = false;
 
+    var idxLH, idxLE = 0;
+    if (isShiftedSymmetryPoint(puzzle)) {
+      idxLH = 1;
+      idxLE = puzzle.numRows-1;
+    }
+    else {
+      idxLH = 0;
+      idxLE = puzzle.numRows-2;
+    }
+
     //From leadhead to leadend
-    for(var idx=0; idx<puzzle.numBells; idx++) {
-      var info = isPositionDetermined(puzzle.solution, puzzle.numRows-2, idx);
-      if(info.isFixed) {
-        var backwardBell = info.bell;
-        var forwardBell = puzzle.solution[0][idx];
+    for(var jdx=0; jdx<puzzle.numBells; jdx++) {
+      var infoLE = isPositionDetermined(puzzle.solution, idxLE, jdx);
+      var infoLH = isPositionDetermined(puzzle.solution, idxLH, jdx);
+      if(infoLH.isFixed && infoLE.isFixed) {
+        var backwardBell = infoLE.bell;
+        var forwardBell = infoLH.bell;
         isChanged |= this.i_palindromic(puzzle, forwardBell, backwardBell);
       }
     }
     
     //From half-lead
-    var idxHLE = Math.floor(puzzle.numRows/2)-1;
-    var idxHLH = idxHLE+1;
+    var idxHLE, idxHLH = 0;
+    if (isShiftedSymmetryPoint(puzzle)) {
+      idxHLE = Math.floor(puzzle.numRows/2);
+      idxHLH = idxHLE+1;
+    }
+    else {
+      idxHLE = Math.floor(puzzle.numRows/2)-1;
+      idxHLH = idxHLE+1;
+    }
 
     //Check if a pair crosses here
-    for(var idx=0; idx<puzzle.numBells-1; idx++) {
-      var infoHLE_L = isPositionDetermined(puzzle.solution, idxHLE, idx);
-      var infoHLH_L = isPositionDetermined(puzzle.solution, idxHLH, idx);
-      var infoHLE_R = isPositionDetermined(puzzle.solution, idxHLE, idx+1);
-      var infoHLH_R = isPositionDetermined(puzzle.solution, idxHLH, idx+1);
+    for(var jdx=0; jdx<puzzle.numBells-1; jdx++) {
+      var infoHLE_L = isPositionDetermined(puzzle.solution, idxHLE, jdx);
+      var infoHLH_L = isPositionDetermined(puzzle.solution, idxHLH, jdx);
+      var infoHLE_R = isPositionDetermined(puzzle.solution, idxHLE, jdx+1);
+      var infoHLH_R = isPositionDetermined(puzzle.solution, idxHLH, jdx+1);
       
       if(infoHLE_L.isFixed && infoHLE_R.isFixed && infoHLH_L.isFixed && infoHLH_R.isFixed &&
         infoHLE_L.bell == infoHLH_R.bell && infoHLE_R.bell == infoHLH_L.bell) {
@@ -428,9 +444,9 @@ class ApplyPalindromicSymmetry extends Strategy {
     }
 
     //Check if a pivot bell
-    for(var idx=0; idx<puzzle.numBells; idx++) {
-      var infoHLE = isPositionDetermined(puzzle.solution, idxHLE, idx);
-      var infoHLH = isPositionDetermined(puzzle.solution, idxHLH, idx);
+    for(var jdx=0; jdx<puzzle.numBells; jdx++) {
+      var infoHLE = isPositionDetermined(puzzle.solution, idxHLE, jdx);
+      var infoHLH = isPositionDetermined(puzzle.solution, idxHLH, jdx);
       
       if(infoHLE.isFixed && infoHLH.isFixed && infoHLE.bell == infoHLH.bell) {
         isChanged |= this.i_palindromic(puzzle, infoHLE.bell, infoHLE.bell);
@@ -442,14 +458,23 @@ class ApplyPalindromicSymmetry extends Strategy {
   
   i_palindromic(puzzle, bell1, bell2) {
     var isChanged = false;
-    for(var idx=0; idx<puzzle.numRows-2; idx++) {
-      var info = isFixedInRow(puzzle.solution, bell1, idx);
+
+    var relevantRows;
+    if(isShiftedSymmetryPoint(puzzle)) {
+      relevantRows = integerRange(1, puzzle.numRows-1);
+    }
+    else {
+      relevantRows = integerRange(0, puzzle.numRows-2);
+    }
+
+    for(var idx=0; idx<relevantRows.length; idx++) {
+      var info = isFixedInRow(puzzle.solution, bell1, relevantRows[idx]);
       if(info.isFixed)
-        isChanged |= fixBell(puzzle.solution, puzzle.numRows-2 - idx, info.jdx, bell2);
+        isChanged |= fixBell(puzzle.solution, relevantRows[relevantRows.length-1 - idx], info.jdx, bell2);
         
       info = isFixedInRow(puzzle.solution, bell2, idx);
       if(info.isFixed)
-        isChanged |= fixBell(puzzle.solution, puzzle.numRows-2 - idx, info.jdx, bell1);
+        isChanged |= fixBell(puzzle.solution, relevantRows[relevantRows.length-1 - idx], info.jdx, bell1);
     }
     
     return isChanged;
@@ -742,7 +767,7 @@ class UpTo2PlacesPerChange extends Strategy {
 
 class ConsecutivePlaceLimit extends Strategy {
   isActive(puzzle) {
-    return puzzle.options.consecutivePlaceLimit > 0;
+    return puzzle.options.consecutivePlaceLimit >= 0;
   }
   step(puzzle) {
     var isChanged = false;
@@ -977,8 +1002,16 @@ class ApplyPalindromicSymmetryFull extends Strategy {
     return isChanged;
   }
   apply(puzzle, direction) {
-    var idxStart = 0;
-    var idxEnd = puzzle.numRows-2;
+
+    var idxStart, idxEnd;
+    if (isShiftedSymmetryPoint(puzzle)) {
+      idxStart = 1;
+      idxEnd = puzzle.numRows-1;
+    }
+    else {
+      idxStart = 0;
+      idxEnd = puzzle.numRows-2;
+    }
     
     var isChanged = false;
     for(var bell=1; bell<=puzzle.numBells; bell++) {
@@ -990,7 +1023,7 @@ class ApplyPalindromicSymmetryFull extends Strategy {
         if(info.isFixed) {
           //These positions in the other part of the lead must all compatible
           //i.e. the options must be the intersection of each other
-          var correspondingBlow = this.map(idx,info.jdx,puzzle.numRows,puzzle.numBells,direction);
+          var correspondingBlow = this.map(puzzle,idx,info.jdx,puzzle.numRows,puzzle.numBells,direction);
           otherBlows.push(correspondingBlow);
           if(isFirstOccurence) {
             candidates = puzzle.solution[correspondingBlow[0]][correspondingBlow[1]];
@@ -1013,9 +1046,12 @@ class ApplyPalindromicSymmetryFull extends Strategy {
     }
     return isChanged;
   }
-  map(idx,jdx,numRows,numBells,direction) {
+  map(puzzle,idx,jdx,numRows,numBells,direction) {
     //Reflect vertically
-    return [numRows-2 - idx, jdx];
+    if(isShiftedSymmetryPoint(puzzle))
+      return [numRows - idx, jdx];
+    else
+      return [numRows-2 - idx, jdx];
   }
 }
 
