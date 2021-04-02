@@ -21,10 +21,10 @@ class WorkingBells extends Strategy {
     
     //If an N-1 lead course specified, see if treble has been fixed at lead end
     if(puzzle.options.numberOfLeads == puzzle.numBells-1) {
-    var info = isPositionDetermined(puzzle.solution, puzzle.numRows-1, 0);
-    if(info.isFixed && info.bell == treble)
-      //<MODIFYOPTIONS>
-      puzzle.options.allWorkingExceptTreble = true;
+      var info = isPositionDetermined(puzzle.solution, puzzle.numRows-1, 0);
+      if(info.isFixed && info.bell == treble)
+        //<MODIFYOPTIONS>
+        puzzle.options.allWorkingExceptTreble = true;
     }
     
     //Fix treble if not working
@@ -36,7 +36,7 @@ class WorkingBells extends Strategy {
       isChanged |= fixBell(puzzle.solution, puzzle.numRows-1, 1, 2);
 
     //Prevent other bells coming home after one lead if appropriate
-    if(puzzle.options.twoHuntBells || allWorkingExceptTreble) {
+    if(puzzle.options.twoHuntBells || puzzle.options.allWorkingExceptTreble) {
       var firstWorkingBell = findFirstWorkingBell(puzzle);
       if (firstWorkingBell > 0)
         for(var b=firstWorkingBell; b<=puzzle.numBells; b++) {
@@ -652,6 +652,8 @@ class SurpriseMinor extends Strategy {
     //3rds in both locations
     isChanged |= makeBlowsConsistent(puzzle.solution, idx3rds[0], 2, idx3rds[1], 2);
     isChanged |= makeBlowsConsistent(puzzle.solution, idx3rds[2], 2, idx3rds[3], 2);
+    
+    return isChanged;
   }
 }
 
@@ -782,13 +784,13 @@ class ConsecutivePlaceLimit extends Strategy {
           if(limit == 0) {
             if(jdx > 1) {
               // Ensure no place to the left
-              isChanged |= makeBlowsConsistent(puzzle.solution, idx, jdx-2, jdx+1, jdx-1);
-              isChanged |= makeBlowsConsistent(puzzle.solution, idx, jdx-1, jdx+1, jdx-2);
+              isChanged |= makeBlowsConsistent(puzzle.solution, idx, jdx-2, idx+1, jdx-1);
+              isChanged |= makeBlowsConsistent(puzzle.solution, idx, jdx-1, idx+1, jdx-2);
             }
             if(jdx < puzzle.numBells-2) {
               // Ensure no place to the right
-              isChanged |= makeBlowsConsistent(puzzle.solution, idx, jdx+2, jdx+1, jdx+1);
-              isChanged |= makeBlowsConsistent(puzzle.solution, idx, jdx+1, jdx+1, jdx+2);
+              isChanged |= makeBlowsConsistent(puzzle.solution, idx, jdx+2, idx+1, jdx+1);
+              isChanged |= makeBlowsConsistent(puzzle.solution, idx, jdx+1, idx+1, jdx+2);
             }
           }
           else if(limit == 2 && jdx<puzzle.numBells-1) {
@@ -799,13 +801,13 @@ class ConsecutivePlaceLimit extends Strategy {
               //Prevent places either side of these two places
               if(jdx > 2) {
                 // Ensure no place to the left
-                isChanged |= makeBlowsConsistent(puzzle.solution, idx, jdx-2, jdx+1, jdx-1);
-                isChanged |= makeBlowsConsistent(puzzle.solution, idx, jdx-1, jdx+1, jdx-2);
+                isChanged |= makeBlowsConsistent(puzzle.solution, idx, jdx-2, idx+1, jdx-1);
+                isChanged |= makeBlowsConsistent(puzzle.solution, idx, jdx-1, idx+1, jdx-2);
               }
               if(jdx < puzzle.numBells-3) {
                 // Ensure no place to the right
-                isChanged |= makeBlowsConsistent(puzzle.solution, idx, jdx+3, jdx+1, jdx+2);
-                isChanged |= makeBlowsConsistent(puzzle.solution, idx, jdx+2, jdx+1, jdx+3);
+                isChanged |= makeBlowsConsistent(puzzle.solution, idx, jdx+3, idx+1, jdx+2);
+                isChanged |= makeBlowsConsistent(puzzle.solution, idx, jdx+2, idx+1, jdx+3);
               }
             }
           }
