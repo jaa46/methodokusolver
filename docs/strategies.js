@@ -637,7 +637,7 @@ class NoShortCycles extends Strategy {
 
 class SurpriseMinor extends Strategy {
   isActive(puzzle) {
-    return puzzle.numBells == 6 && puzzle.options.surprise;
+    return puzzle.numBells == 6 && puzzle.numRows == 25 && puzzle.options.surprise;
   }
   step(puzzle) {
     var isChanged = false;
@@ -659,7 +659,7 @@ class SurpriseMinor extends Strategy {
 
 class DelightMinor extends Strategy {
   isActive(puzzle) {
-    return puzzle.numBells == 6 && puzzle.options.delight;
+    return puzzle.numBells == 6 && puzzle.numRows == 25 && puzzle.options.delight;
   }
   step(puzzle) {
     var isChanged = false;
@@ -707,7 +707,7 @@ class DelightMinor extends Strategy {
 
 class TrebleBobMinor extends Strategy {
   isActive(puzzle) {
-    return puzzle.numBells == 6 && puzzle.options.trebleBob;
+    return puzzle.numBells == 6 && puzzle.numRows == 25 && puzzle.options.trebleBob;
   }
   step(puzzle) {
     var isChanged = false;

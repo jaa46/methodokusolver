@@ -38,6 +38,20 @@ td table td {
   height: 20px;
   border-collapse: collapse;
 }
+
+.strategyDisplay {
+  border-collapse: separate;
+  padding: 2px;
+  margin: 2px;
+  height: 10px;
+}
+
+.container {
+    display:flex;
+}
+.flex-item {
+    flex-grow: 1;
+}
 </style>
 
 <body>
@@ -57,7 +71,6 @@ td table td {
 <input type = "text" id = "numberOfBells" value = "6">  
 <br>
 <br>
-<div id="filters" style="height:3vh">
 <div class="checkboxcontainer" id="optionControls">
 <div class="checkbox"><input type="checkbox" id="palindromicSymmetry" onclick="updateConfig();" unchecked>
 <label class="checkboxlabel">Palindromic symmetry</label><br></div>
@@ -67,12 +80,6 @@ td table td {
 
 <div class="checkbox"><input type="checkbox" id="mirrorSymmetry" onclick="updateConfig();" unchecked>
 <label class="checkboxlabel">Mirror symmetry</label><br></div>
-
-<div class="checkbox"><input type="checkbox" id="noLongPlaces" onclick="updateConfig();" unchecked>
-<label class="checkboxlabel">No long places</label><br></div>
-
-<div class="checkbox"><input type="checkbox" id="allWorkingExceptTreble" onclick="updateConfig();" unchecked>
-<label class="checkboxlabel">All working except treble</label><br></div>
 
 <div class="checkbox"><input type="checkbox" id="is2OrNLeadEnd" onclick="updateConfig();" unchecked>
 <label class="checkboxlabel">2nds or Nths place leadend</label><br></div>
@@ -92,11 +99,26 @@ td table td {
 <div class="checkbox"><input type="checkbox" id="fullCourse" onclick="updateConfig();" unchecked>
 <label class="checkboxlabel">Full-course</label><br></div>
 
+<div class="checkbox"><input type="checkbox" id="allWorkingExceptTreble" onclick="updateConfig();" unchecked>
+<label class="checkboxlabel">All working except treble</label><br></div>
+
+<div class="checkbox"><input type="checkbox" id="twoHuntBells" onclick="updateConfig();" unchecked>
+<label class="checkboxlabel">Two hunt bells</label><br></div>
+
 <div class="checkbox"><input type="checkbox" id="trueInLead" onclick="updateConfig();" unchecked>
 <label class="checkboxlabel">True in lead</label><br></div>
 
 <div class="checkbox"><input type="checkbox" id="trueInCourse" onclick="updateConfig();" unchecked disabled>
 <label class="checkboxlabel">True in plain course</label><br></div>
+
+<div class="checkbox"><input type="checkbox" id="noLongPlaces" onclick="updateConfig();" unchecked>
+<label class="checkboxlabel">No long places</label><br></div>
+
+<div class="checkbox"><input type="checkbox" id="rightPlace" onclick="updateConfig();" unchecked>
+<label class="checkboxlabel">Right place</label><br></div>
+
+<div class="checkbox"><input type="checkbox" id="atMost2PlacesPerChange" onclick="updateConfig();" unchecked>
+<label class="checkboxlabel">At most 2 places per changes</label><br></div>
 
 <div class="checkbox"><input type="checkbox" id="allDoubleChanges" onclick="updateConfig();" unchecked>
 <label class="checkboxlabel">All double changes</label><br></div>
@@ -112,15 +134,6 @@ td table td {
 
 <div class="checkbox"><input type="checkbox" id="trebleBob" onclick="updateConfig();" unchecked>
 <label class="checkboxlabel">Treble-bob Minor</label><br></div>
-
-<div class="checkbox"><input type="checkbox" id="rightPlace" onclick="updateConfig();" unchecked>
-<label class="checkboxlabel">Right place</label><br></div>
-
-<div class="checkbox"><input type="checkbox" id="atMost2PlacesPerChange" onclick="updateConfig();" unchecked>
-<label class="checkboxlabel">At most 2 places per changes</label><br></div>
-
-<div class="checkbox"><input type="checkbox" id="twoHuntBells" onclick="updateConfig();" unchecked>
-<label class="checkboxlabel">Two hunt bells</label><br></div>
 </div>
 
 <br>
@@ -131,10 +144,17 @@ td table td {
 <input type = "button" onclick="restartPuzzle()" value = "Restart">  
 <br>
 <br>
-<table id="grid" contenteditable='true'>
-</table>
-
-<script>createNewPuzzle(); loadTests();</script>
+<div class="container">
+  <div class="flex-item">
+    <table id="grid" contenteditable='true'>
+    </table>
+  </div>
+  <div class="flex-item">
+    <table id="strategiesDisplay">
+    </table>
+  </div>
+</div>
+<script>buildStrategyTable(); createNewPuzzle(); loadTests();</script>
 
 </body>
 </html>

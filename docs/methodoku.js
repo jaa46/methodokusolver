@@ -317,11 +317,52 @@ function createNewPuzzle() {
 function restartPuzzle() {
 
   resetPuzzle();
+  highlightActiveStrategy(-1);
   
   if(puzzle.start.length > 0)
     updateGrid(false);
   else
     console.log("Puzzle not started yet")
+}
+
+function updateStrategyVisibility(puzzle) {
+  var display = document.getElementById("strategiesDisplay");
+  for(var idx=0; idx<strategies.length; idx++) {
+    var td = display.rows[idx].cells[0];
+    if(strategies[idx].isActive(puzzle)) {
+      td.style.color = "black";
+    }
+    else {
+      td.style.color = "#D3D3D3";
+    }
+  } 
+}
+
+function highlightActiveStrategy(idxActive) {
+  var display = document.getElementById("strategiesDisplay");
+  for(var idx=0; idx<strategies.length; idx++) {
+    var td = display.rows[idx].cells[0];
+    if(idx == idxActive) {
+      td.style.borderColor = "blue";
+      td.style.borderWidth = "thick";
+    }
+    else {
+      td.style.borderColor = "black";
+      td.style.borderWidth = "thin";
+    }
+  }   
+}
+
+function buildStrategyTable() {
+  var display = document.getElementById("strategiesDisplay");
+  
+  for(var idx=0; idx<strategies.length; idx++) {
+    var row = display.insertRow(idx);
+    var cell = row.insertCell();
+    cell.innerText = getStrategyName(strategies[idx]);
+    cell.className = "strategyDisplay";
+    cell.id = "strategy_" + idx;
+  }
 }
 
 var strategies = [new WorkingBells(), new OncePerRow(), 
@@ -334,6 +375,13 @@ var strategies = [new WorkingBells(), new OncePerRow(),
   new ApplyPalindromicSymmetryFull(), new ApplyDoubleSymmetryFull(), new ApplyMirrorSymmetryFull(), 
   new DoNotMakeBadDecision(true), new DoNotMakeBadGuess(true)];
 
+function getStrategyName(strategy) {
+  var name = strategy.constructor.name;
+  if (strategy.doPropagate)
+    name += " (withPropagation)";
+  return name;
+}
+
 function takeStep(updateMessage=true) {
 
   // Pick up changes made by the user
@@ -343,25 +391,28 @@ function takeStep(updateMessage=true) {
     buildStartingSolution();
   }
 
+  updateStrategyVisibility(puzzle);
+
   var isChanged = false;
   var message = getStatus();
     
   for(var idx = 0; idx < strategies.length && isGlobalOK; idx++)
     if (strategies[idx].isActive(puzzle))
     {
+      if (!isSolved())
+        highlightActiveStrategy(idx);
+      
       if(updateMessage)
-        setStatus("Attempting strategy: " + strategies[idx].constructor.name)
+        setStatus("Attempting strategy: " + getStrategyName(strategies[idx]))
       isChanged = strategies[idx].step(puzzle);
       if (isChanged || !isGlobalOK)
       {
         if(!isGlobalOK) {
           isChanged = false;
-          message = "Things have gone wrong using " + strategies[idx].constructor.name;
+          message = "Things have gone wrong using " + getStrategyName(strategies[idx]);
         }
         else {
-          message = "Success using: " + strategies[idx].constructor.name + " (" + countSolvedBlows(puzzle) + " " + countRemainingOptions(puzzle) + ")";
-          if (strategies[idx].doPropagate)
-            message += " (withPropagation)";
+          message = "Success using: " + getStrategyName(strategies[idx]) + " (" + countSolvedBlows(puzzle) + " " + countRemainingOptions(puzzle) + ")";
 
           if(saveOutput)
             testResults += message + "\n";
@@ -375,8 +426,10 @@ function takeStep(updateMessage=true) {
   
   if(!checkSolutionValid(puzzle))
     message += "Things have gone wrong."
-  else if (isSolved())
-    message += "Solved!"
+  else if (isSolved()) {
+    if (!message.endsWith("Solved!"))
+      message += ". Solved!"
+  }
   else if(!isChanged && isGlobalOK)
     message = "No progress made"
   
@@ -404,6 +457,8 @@ function solveGrid() {
 
   if(puzzle.solution.length == 0)
     buildStartingSolution();
+
+  updateStrategyVisibility(puzzle);
   
   var countSolvedPrev = countSolvedBlows(puzzle);
   var countRemainingPrev = countRemainingOptions(puzzle);
