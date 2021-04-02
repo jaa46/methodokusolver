@@ -427,7 +427,7 @@ function solveGrid() {
   updateGrid(false)
 }
 
-function countSolvedBlows() {
+function countSolvedBlows(puzzle) {
   var count = 0;
   for(var i=0; i<puzzle.numRows; i++)
     for(var j=0; j<puzzle.numBells; j++)
@@ -436,7 +436,7 @@ function countSolvedBlows() {
   return count;
 }
 
-function countRemainingOptions() {
+function countRemainingOptions(puzzle) {
   var count = 0;
   for(var i=0; i<puzzle.numRows; i++)
     for(var j=0; j<puzzle.numBells; j++)
@@ -445,7 +445,7 @@ function countRemainingOptions() {
 }
 
 function isSolved() {
-  return countSolvedBlows() == puzzle.numRows * puzzle.numBells;
+  return countSolvedBlows(puzzle) == puzzle.numRows * puzzle.numBells;
 }
 
 function isPositionDetermined(board, idx, jdx) {
@@ -462,7 +462,7 @@ function isPositionDetermined(board, idx, jdx) {
 }
 
 function fixBell(board, idx, jdx, bell) {
-  if(!Array.isArray(board[idx][jdx]) &&  board[idx][jdx] != bell) {
+  if(!Array.isArray(board[idx][jdx]) &&  board[idx][jdx] != bell || Array.isArray(board[idx][jdx]) && board[idx][jdx].length == 0) {
     isGlobalOK = false;
     return false;
   }
@@ -496,6 +496,7 @@ function removeBell(board, idx, jdx, bell) {
   
   if (!Array.isArray(board[idx][jdx]) && !isChanged && board[idx][jdx] == bell || Array.isArray(board[idx][jdx]) && board[idx][jdx].length == 0) {
     //Things have gone wrong
+    console.log("Invalid bell being removed")
     isGlobalOK = false;
   }
   return isChanged;
@@ -682,7 +683,7 @@ function trackBellTillJunction(puzzle, bell, idx, jdx, idxPrev, jdxPrev, directi
       var isChanged = false;
 
       for(var idxS = 0; idxS < strategies.length; idxS++)
-        if(!strategies[idxS].isRecursive && strategies[idxS].isActive(puzzleWorking) && isGlobalOK)
+        if(isValid && !strategies[idxS].isRecursive && strategies[idxS].isActive(puzzleWorking) && isGlobalOK)
         {
           //console.log("Internal use of strategy: " + strategies[idxS].constructor.name);
           isChanged |= strategies[idxS].step(puzzleWorking);

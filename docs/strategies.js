@@ -398,7 +398,7 @@ class ApplyPalindromicSymmetry extends Strategy {
   step(puzzle) {
     var isChanged = false;
 
-    var idxLH, idxLE = 0;
+    var idxLH, idxLE;
     if (isShiftedSymmetryPoint(puzzle)) {
       idxLH = 1;
       idxLE = puzzle.numRows-1;
@@ -472,7 +472,7 @@ class ApplyPalindromicSymmetry extends Strategy {
       if(info.isFixed)
         isChanged |= fixBell(puzzle.solution, relevantRows[relevantRows.length-1 - idx], info.jdx, bell2);
         
-      info = isFixedInRow(puzzle.solution, bell2, idx);
+      info = isFixedInRow(puzzle.solution, bell2, relevantRows[idx]);
       if(info.isFixed)
         isChanged |= fixBell(puzzle.solution, relevantRows[relevantRows.length-1 - idx], info.jdx, bell1);
     }
@@ -531,8 +531,8 @@ class Is2OrNLeadEnd extends Strategy {
   step(puzzle) {
     
     var isChanged = false;
-    var is2LeadEnd = puzzle.options.is2LeadEnd || !this.checkIfGivenLeadEndPossible(puzzle, puzzle.numBells);
-    var isNLeadEnd = puzzle.options.isNLeadEnd || !this.checkIfGivenLeadEndPossible(puzzle, 2);
+    var is2LeadEnd = puzzle.options.is2LeadEnd || !puzzle.options.isNLeadEnd && !this.checkIfGivenLeadEndPossible(puzzle, puzzle.numBells);
+    var isNLeadEnd = puzzle.options.isNLeadEnd || !puzzle.options.is2LeadEnd && !this.checkIfGivenLeadEndPossible(puzzle, 2);
   
     if(is2LeadEnd)
       isChanged |= this.applyLeadEnd(puzzle, 2);
@@ -696,8 +696,10 @@ class DelightMinor extends Strategy {
       isChanged |= makeBlowsConsistent(puzzle.solution, idx4ths[2], 4, idx4ths[3], 3);      
     }
     
-    if(!is3rdsPossible && !is4thsPossible)
+    if(!is3rdsPossible && !is4thsPossible) {
       console.log("Things have gone wrong with delight places");
+      isGlobalOK = false;
+    }
       
     return isChanged;
   }
@@ -759,7 +761,7 @@ class UpTo2PlacesPerChange extends Strategy {
       }
       
       if(placeCount > 2){
-        //Not good        
+        isGlobalOK = false;
       }
     }
     
