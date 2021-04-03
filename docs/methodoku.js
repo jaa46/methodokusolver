@@ -393,12 +393,14 @@ var strategies = [new WorkingBells(), new OncePerRow(),
   new UpTo2PlacesPerChange(), new ConsecutivePlaceLimit(), 
   new DoNotMakeBadDecision(false), new DoNotMakeBadGuess(false), 
   new ApplyPalindromicSymmetryFull(), new ApplyDoubleSymmetryFull(), new ApplyMirrorSymmetryFull(), 
-  new DoNotMakeBadDecision(true), new DoNotMakeBadGuess(true)];
+  new DoNotMakeBadDecision(true), new DoNotMakeBadGuess(true), new DoNotMakeBadDecision(true, 2), new DoNotMakeBadGuess(true, 2)];
 
 function getStrategyName(strategy) {
   var name = strategy.constructor.name;
   if (strategy.doPropagate)
     name += " (withPropagation)";
+  if (strategy.recursionLimit)
+    name += " (recursionLimit=" + strategy.recursionLimit + ")";
   return name;
 }
 
@@ -571,7 +573,7 @@ function removeBell(board, idx, jdx, bell) {
   
   if (!Array.isArray(board[idx][jdx]) && !isChanged && board[idx][jdx] == bell || Array.isArray(board[idx][jdx]) && board[idx][jdx].length == 0) {
     //Things have gone wrong
-    console.log("Invalid bell being removed")
+    //console.log("Invalid bell being removed")
     isGlobalOK = false;
   }
   return isChanged;
@@ -681,7 +683,7 @@ for(var idx=0; idx<jdxs.length; idx++)
 return isChanged;
 }
 
-function takeGuess(puzzle, numberOptions, withPropagation) {
+function takeGuess(puzzle, numberOptions, withPropagation, config) {
   var directions = [1, -1];
   var isChanged = false;
   for(var idx=0; idx<puzzle.numRows; idx++)
@@ -713,10 +715,11 @@ function takeGuess(puzzle, numberOptions, withPropagation) {
             for(var cdx=0; cdx<candidates.length; cdx++) {
               //Determine consequences of picking this candidate
               var posToRemove = trackBellTillJunction(puzzle, bellOptions[bdx], idxNew, candidates[cdx], idx, jdx, directions[ddx], 
-                withPropagation);
+                withPropagation, config);
               
               if(startingFromKnownPoint && posToRemove.length > 0) {
-                console.log("Remove bell " + bellOptions[bdx] + " from " + posToRemove[0] + "," + posToRemove[1])
+                if(config.recursionLevel == 1)
+                  console.log("Remove bell " + bellOptions[bdx] + " from " + posToRemove[0] + "," + posToRemove[1])
                 isChanged = removeBell(puzzle.solution, posToRemove[0], posToRemove[1], bellOptions[bdx]);
                 return isChanged;
               }
@@ -728,7 +731,8 @@ function takeGuess(puzzle, numberOptions, withPropagation) {
               //If we guessed a position initially and then all
               //possibilities from there resulted in error, than
               //the bell cannot be in this guessed location
-              console.log("Remove bell " + bellOptions[bdx] + " from " + idxStart + "," + jdx)
+              if(config.recursionLevel == 1)
+                console.log("Remove bell " + bellOptions[bdx] + " from " + idxStart + "," + jdx)
               isChanged = removeBell(puzzle.solution, idxStart, jdx, bellOptions[bdx]);
               return isChanged;
             }
@@ -739,7 +743,7 @@ function takeGuess(puzzle, numberOptions, withPropagation) {
   return isChanged;
 }
 
-function trackBellTillJunction(puzzle, bell, idx, jdx, idxPrev, jdxPrev, direction, withPropagation) {
+function trackBellTillJunction(puzzle, bell, idx, jdx, idxPrev, jdxPrev, direction, withPropagation, config) {
   
   if(direction*(idx-idxPrev) <= 0)
     console.log("Things have gone wrong: bad inputs to trackBellTillJunction")
@@ -758,10 +762,15 @@ function trackBellTillJunction(puzzle, bell, idx, jdx, idxPrev, jdxPrev, directi
       var isChanged = false;
 
       for(var idxS = 0; idxS < strategies.length; idxS++)
-        if(isValid && !strategies[idxS].isRecursive && strategies[idxS].isActive(puzzleWorking) && isGlobalOK)
-        {
-          //console.log("Internal use of strategy: " + strategies[idxS].constructor.name);
-          isChanged |= strategies[idxS].step(puzzleWorking);
+        if(isValid && strategies[idxS].isActive(puzzleWorking) && isGlobalOK) {
+          if(!strategies[idxS].isRecursive)
+            isChanged |= strategies[idxS].step(puzzleWorking);
+          else {
+            //Ignores strategies without propagation, as the pretence of not tree searching is rapidly disappearing
+            if(config.recursionLevel < config.recursionLimit && strategies[idxS].doPropagate && strategies[idxS].recursionLimit == config.recursionLimit) {
+              isChanged |= strategies[idxS].step(puzzleWorking, config.recursionLevel + 1);
+            }
+          }
           
           isValid &= checkSolutionValid(puzzleWorking);
       

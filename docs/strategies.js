@@ -525,15 +525,42 @@ class Is2OrNLeadEnd extends Strategy {
       return false;
     }
       
-    return puzzle.options.is2OrNLeadEnd || puzzle.options.is2LeadEnd || puzzle.options.isNLeadEnd
+    return puzzle.options.is2OrNLeadEnd || puzzle.options.is2LeadEnd || puzzle.options.isNLeadEnd ||
+      puzzle.options.palindromicSymmetry && puzzle.options.plainBobLeadEnd;
   }
   
   step(puzzle) {
     
     var isChanged = false;
-    var is2LeadEnd = puzzle.options.is2LeadEnd || !puzzle.options.isNLeadEnd && !this.checkIfGivenLeadEndPossible(puzzle, puzzle.numBells);
-    var isNLeadEnd = puzzle.options.isNLeadEnd || !puzzle.options.is2LeadEnd && !this.checkIfGivenLeadEndPossible(puzzle, 2);
-  
+    var is2LeadEnd = puzzle.options.is2LeadEnd;
+    var isNLeadEnd = puzzle.options.isNLeadEnd;
+    
+    //Determine if we require either a 2nds or an Nth place leadend
+    if(puzzle.options.is2OrNLeadEnd || puzzle.options.palindromicSymmetry && puzzle.options.plainBobLeadEnd) {
+      //Can it be an Nths place lead end?
+      if(!this.checkIfGivenLeadEndPossible(puzzle, puzzle.numBells)) {
+        if(puzzle.options.isNLeadEnd) {
+          isGlobalOK = false;
+          return isChanged;
+        }
+        else {
+          //If not, it must be a 2nds place leadend
+          is2LeadEnd = true;
+        }
+      }
+      //Can it be a 2nds place lead end?
+      if(!this.checkIfGivenLeadEndPossible(puzzle, 2)) {
+        if(puzzle.options.is2LeadEnd) {
+          isGlobalOK = false;
+          return isChanged;
+        }
+        else {
+          //If not, it must be a Nths place leadend
+          isNLeadEnd = true;
+        }
+      }
+    }
+     
     if(is2LeadEnd)
       isChanged |= this.applyLeadEnd(puzzle, 2);
     else if (isNLeadEnd)
@@ -584,11 +611,11 @@ class Is2OrNLeadEnd extends Strategy {
     isChanged |= makeBlowsConsistent(puzzle.solution, idxLE, place-1, idxLH, place-1)
     
     if(place == 2)
-      for(var idx=2; idx<puzzle.numBells; idx+=2)
-        isChanged |= this.makePairSwappingConsistent(puzzle, idx, idx+1)
+      for(var jdx=2; jdx<puzzle.numBells-1; jdx+=2)
+        isChanged |= this.makePairSwappingConsistent(puzzle, jdx, jdx+1)
     else if(place == puzzle.numBells)
-      for(var idx=1; idx<puzzle.numBells-1; idx+=2)
-        isChanged |= this.makePairSwappingConsistent(puzzle, idx, idx+1)
+      for(var jdx=1; jdx<puzzle.numBells-2; jdx+=2)
+        isChanged |= this.makePairSwappingConsistent(puzzle, jdx, jdx+1)
 
     return isChanged;
   }
@@ -820,51 +847,69 @@ class ConsecutivePlaceLimit extends Strategy {
 } 
 
 class DoNotMakeBadDecision extends Strategy {
-  constructor(doPropagate) {
+  constructor(doPropagate, recursionLimit) {
     super();
     this.doPropagate = doPropagate;
+    
+    if(recursionLimit)
+      this.recursionLimit = recursionLimit;
   }
   isRecursive = true;
+  recursionLimit = 1;
   isActive(puzzle)
   {
     return true;
   }
-  step(puzzle)
+  step(puzzle, recursionLevel)
   {
+    if(!recursionLevel)
+      recursionLevel = 1;
+    
+    var config = {'recursionLevel': recursionLevel, 'recursionLimit': this.recursionLimit};
+    
     //Only guess from fixed bells
-    var isChanged = takeGuess(puzzle, 1, this.doPropagate);
+    var isChanged = takeGuess(puzzle, 1, this.doPropagate, config);
     return isChanged;
   }
 }
 
 class DoNotMakeBadGuess extends Strategy {
-  constructor(doPropagate) {
+  constructor(doPropagate, recursionLimit) {
     super();
     this.doPropagate = doPropagate;
+
+    if(recursionLimit)
+      this.recursionLimit = recursionLimit;
   }
   isRecursive = true;
+  recursionLimit = 1;
   isActive(puzzle)
   {
     return true;
   }
-  step(puzzle)
+  step(puzzle, recursionLevel)
   {
+    if(!recursionLevel)
+      recursionLevel = 1;
+    
+    var config = {'recursionLevel': recursionLevel, 'recursionLimit': this.recursionLimit};
+    
     //Guess the bell for each blows with up to 2 possibilities, and test out
     //each of the options to see if a guess can be ruled out
-    var isChanged = takeGuess(puzzle, 2, this.doPropagate)
+    var isChanged = takeGuess(puzzle, 2, this.doPropagate, config)
     
     //Guess plain bob leadends
     if(puzzle.options.plainBobLeadEnd) {
       var plainBobLeadHeads = this.generatePlainBobLeadHeads(puzzle.numBells);
       var idxHLH = Math.floor(puzzle.numRows/2);
       var idxLH = puzzle.numRows - 1;
-      isChanged |= this.guessLE_HL(puzzle, this.doPropagate, plainBobLeadHeads, [idxLH, idxLH-1], [idxHLH, idxHLH-1], -1);
+      isChanged |= this.guessLE_HL(puzzle, this.doPropagate, plainBobLeadHeads, [idxLH, idxLH-1], [idxHLH, idxHLH-1], -1, config);
 
       if(puzzle.options.palindromicSymmetry) {
         var plainBobLeadEnds = this.generatePlainBobLeadEnds(puzzle.numBells);
         var idxHLE = Math.floor(puzzle.numRows/2) - 1;
         var idxLE = puzzle.numRows - 2;
-        isChanged |= this.guessLE_HL(puzzle, this.doPropagate, plainBobLeadEnds, [idxLE, idxLE+1], [idxHLE, idxHLE+1], +1);
+        isChanged |= this.guessLE_HL(puzzle, this.doPropagate, plainBobLeadEnds, [idxLE, idxLE+1], [idxHLE, idxHLE+1], +1, config);
       }
     }
 
@@ -873,28 +918,28 @@ class DoNotMakeBadGuess extends Strategy {
       var cyclicLeadHeads = this.generateCyclicLeadHeads(puzzle.numBells);
       var idxHLH = Math.floor(puzzle.numRows/2);
       var idxLH = puzzle.numRows - 1;
-      isChanged |= this.guessLE_HL(puzzle, this.doPropagate, cyclicLeadHeads, [idxLH, idxLH-1], [idxHLH, idxHLH-1], -1);
+      isChanged |= this.guessLE_HL(puzzle, this.doPropagate, cyclicLeadHeads, [idxLH, idxLH-1], [idxHLH, idxHLH-1], -1, config);
     }
 
     return isChanged;
   }
-  guessLE_HL(puzzle, withPropagation, possibleLeads, idxLead, idxHalfLead, direction) {
+  guessLE_HL(puzzle, withPropagation, possibleLeads, idxLead, idxHalfLead, direction, config) {
     var isChanged = false;
     
     //Test out leadhead/end
     var jdxLead = [0,0];
-    isChanged |= this.tryEachRow(puzzle, withPropagation, possibleLeads, idxLead, jdxLead, direction);
+    isChanged |= this.tryEachRow(puzzle, withPropagation, possibleLeads, idxLead, jdxLead, direction, config);
     
     if(puzzle.options.doubleSymmetry) {
       //Test out half-leadhead/end
       var possibleHeadLeads = possibleLeads.map(function(v) {return v.reverse();});
       var jdxHalfLead = [puzzle.numBells-1, puzzle.numBells-1];
-      isChanged |= this.tryEachRow(puzzle, withPropagation, possibleHeadLeads, idxHalfLead, jdxHalfLead, direction);      
+      isChanged |= this.tryEachRow(puzzle, withPropagation, possibleHeadLeads, idxHalfLead, jdxHalfLead, direction, config);      
     }
     
     return isChanged;
   }
-  tryEachRow(puzzle, withPropagation, possibleRows, idxRows, jdxRows, direction) {
+  tryEachRow(puzzle, withPropagation, possibleRows, idxRows, jdxRows, direction, config) {
     var idxValidRows = [];
     for(var rdx=0; rdx<possibleRows.length; rdx++) {
       var row = possibleRows[rdx];
@@ -912,7 +957,7 @@ class DoNotMakeBadGuess extends Strategy {
         
         var treble = 1;
         var posToRemove = trackBellTillJunction(puzzleWorking, treble, idxRows[1], jdxRows[1], idxRows[0], jdxRows[0], 
-          direction, withPropagation);
+          direction, withPropagation, config);
         if(posToRemove.length == 0)
           idxValidRows.push(rdx);
       }
@@ -920,7 +965,8 @@ class DoNotMakeBadGuess extends Strategy {
     
     var isChanged = false;
     if(idxValidRows.length == 1) {
-      console.log("identified leadend/halflead row at " + idxRows[0] + ": " + possibleRows[idxValidRows[0]])
+      if(config.recursionLevel == 1)
+        console.log("identified leadend/halflead row at " + idxRows[0] + ": " + possibleRows[idxValidRows[0]])
       for(var jdx=0; jdx<puzzle.numBells; jdx++)
         isChanged |= fixBell(puzzle.solution, idxRows[0], jdx, possibleRows[idxValidRows[0]][jdx]);
     }
