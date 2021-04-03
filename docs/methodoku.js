@@ -221,7 +221,15 @@ function updateControls() {
   var controls = document.getElementById("optionControls");
   var checkboxes = controls.querySelectorAll('input[type="checkbox"]');
   for (var checkbox of checkboxes) {
-    checkbox.checked = puzzle.options.indexOf(checkbox.id) >= 0 || puzzle.options[checkbox.id];
+    checkbox.checked = checkbox.id in puzzle.options && puzzle.options[checkbox.id];
+  }
+  var numberboxes = controls.querySelectorAll('input[type="number"]');
+  for (var numberbox of numberboxes) {
+    //Ignore the unspecified value of -1
+    if (numberbox.id in puzzle.options && puzzle.options[numberbox.id] > -1)
+      numberbox.value = puzzle.options[numberbox.id];
+    else
+      numberbox.value = "";
   }
 }
 
@@ -285,6 +293,18 @@ function updatePuzzleFromGrid() {
   for (var checkbox of checkboxes) {
     puzzle.options[checkbox.id] = checkbox.checked;
   }  
+  //Update options from numerical inputs
+  var numberboxes = controls.querySelectorAll('input[type="number"]');
+  for (var numberbox of numberboxes) {
+    if (numberbox.value >= numberbox.min)
+      puzzle.options[numberbox.id] = parseInt(numberbox.value);
+    else {
+      //Set to -1 if invalid
+      puzzle.options[numberbox.id] = -1;
+      if (numberbox.value && numberbox.value != "")
+        console.log("Ignoring numerical input '" + numberbox.id + "' as invalid.")
+    }
+  }
 }
 
 function isValidBellStr(str){

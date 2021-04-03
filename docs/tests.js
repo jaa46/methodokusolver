@@ -75,11 +75,11 @@ function addPuzzle(text, url) {
   for (var checkbox of checkboxes) {
     options[checkbox.id] = false;
   }  
-  
-  //TODO: make these visible to the user
-  var nums = ["numberOfHuntBells", "numberOfLeads", "consecutivePlaceLimit"];
-  for (var idx=0; idx<nums.length; idx++) {
-    options[nums[idx]] = -1;
+
+  //Build options from numericla inputs
+  var numberboxes = controls.querySelectorAll('input[type="number"]');
+  for (var numberbox of numberboxes) {
+    options[numberbox.id] = -1;
   }  
   
   //Mark relevant options true
