@@ -20,13 +20,14 @@ function blankPuzzle(numRows, numBells) {
     options: [],
     optionsDerived: [],
     numRows: numRows,
-    numBells: numBells
+    numBells: numBells,
+    isValid: true
   };
 }
 
 function resetPuzzle() {
 setStatus("")
-isGlobalOK = true;
+puzzle.isValid = true;
 puzzle.solution = [];
 puzzle.optionsDerived = [];
 
@@ -418,7 +419,7 @@ function takeStep(updateMessage=true) {
   var isChanged = false;
   var message = getStatus();
     
-  for(var idx = 0; idx < strategies.length && isGlobalOK; idx++)
+  for(var idx = 0; idx < strategies.length && puzzle.isValid; idx++)
     if (strategies[idx].isActive(puzzle))
     {
       if (!isSolved())
@@ -426,10 +427,18 @@ function takeStep(updateMessage=true) {
       
       if(updateMessage)
         setStatus("Attempting strategy: " + getStrategyName(strategies[idx]))
-      isChanged = strategies[idx].step(puzzle);
-      if (isChanged || !isGlobalOK)
+      
+      var isOK = true;
+      try {
+        isChanged = strategies[idx].step(puzzle);
+      }
+      catch(err) {
+        isOK = false;
+        puzzle.isValid = false;
+      }
+      if (isChanged || !puzzle.isValid)
       {
-        if(!isGlobalOK) {
+        if(!puzzle.isValid) {
           isChanged = false;
           message = "Things have gone wrong using " + getStrategyName(strategies[idx]);
         }
@@ -452,7 +461,7 @@ function takeStep(updateMessage=true) {
     if (!message.endsWith("Solved!"))
       message += ". Solved!"
   }
-  else if(!isChanged && isGlobalOK)
+  else if(!isChanged && puzzle.isValid)
     message = "No progress made"
   
   if(updateMessage)
@@ -485,7 +494,7 @@ function solveGrid() {
   var countSolvedPrev = countSolvedBlows(puzzle);
   var countRemainingPrev = countRemainingOptions(puzzle);
 
-  var doContinue = isGlobalOK;
+  var doContinue = puzzle.isValid;
   while (doContinue)
   {
     var status = takeStep();
@@ -538,9 +547,14 @@ function isPositionDetermined(board, idx, jdx) {
     }
 }
 
+function methodokuError() {
+  throw "Things have gone wrong"
+  isGlobalOK = false;
+}
+
 function fixBell(board, idx, jdx, bell) {
-  if(!Array.isArray(board[idx][jdx]) &&  board[idx][jdx] != bell || Array.isArray(board[idx][jdx]) && board[idx][jdx].length == 0) {
-    isGlobalOK = false;
+  if(!Array.isArray(board[idx][jdx]) &&  board[idx][jdx] != bell || Array.isArray(board[idx][jdx]) && board[idx][jdx].length == 0 || bell == []) {
+    methodokuError();
     return false;
   }
   
@@ -554,7 +568,6 @@ function fixBell(board, idx, jdx, bell) {
     return false;
 }
 
-var isGlobalOK = true;
 function removeBell(board, idx, jdx, bell) {
   var isChanged = false;
   if (Array.isArray(board[idx][jdx])) {
@@ -574,7 +587,7 @@ function removeBell(board, idx, jdx, bell) {
   if (!Array.isArray(board[idx][jdx]) && !isChanged && board[idx][jdx] == bell || Array.isArray(board[idx][jdx]) && board[idx][jdx].length == 0) {
     //Things have gone wrong
     //console.log("Invalid bell being removed")
-    isGlobalOK = false;
+    methodokuError();
   }
   return isChanged;
 }
@@ -754,36 +767,38 @@ function trackBellTillJunction(puzzle, bell, idx, jdx, idxPrev, jdxPrev, directi
   var isValid = true;
   
   if(withPropagation) {
-    var isGlobalOKPrev = isGlobalOK;
-    isGlobalOK = true;
-    
     //Determine consequences of making this guess
     while(true) {
       var isChanged = false;
 
       for(var idxS = 0; idxS < strategies.length; idxS++)
-        if(isValid && strategies[idxS].isActive(puzzleWorking) && isGlobalOK) {
-          if(!strategies[idxS].isRecursive)
-            isChanged |= strategies[idxS].step(puzzleWorking);
+        if(isValid && strategies[idxS].isActive(puzzleWorking)) {
+          if(!strategies[idxS].isRecursive) {
+            try {
+              isChanged |= strategies[idxS].step(puzzleWorking);
+            }
+            catch(err) {
+              isValid = false;
+            }
+          }
           else {
             //Ignores strategies without propagation, as the pretence of not tree searching is rapidly disappearing
             if(config.recursionLevel < config.recursionLimit && strategies[idxS].doPropagate && strategies[idxS].recursionLimit == config.recursionLimit) {
-              isChanged |= strategies[idxS].step(puzzleWorking, config.recursionLevel + 1);
+              try {
+                isChanged |= strategies[idxS].step(puzzleWorking, config.recursionLevel + 1);
+              }
+              catch(err) {
+                isValid = false;
+              }
             }
           }
           
           isValid &= checkSolutionValid(puzzleWorking);
-      
-          if(!isGlobalOK)
-            isValid = false;
         }
       
       if(!isValid || !isChanged)
         break;
-    }
-    
-    //Mischief managed
-    isGlobalOK = isGlobalOKPrev;
+    }      
   }
   
   //Record where we started analysing

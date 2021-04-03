@@ -540,7 +540,7 @@ class Is2OrNLeadEnd extends Strategy {
       //Can it be an Nths place lead end?
       if(!this.checkIfGivenLeadEndPossible(puzzle, puzzle.numBells)) {
         if(puzzle.options.isNLeadEnd) {
-          isGlobalOK = false;
+          methodokuError();
           return isChanged;
         }
         else {
@@ -551,7 +551,7 @@ class Is2OrNLeadEnd extends Strategy {
       //Can it be a 2nds place lead end?
       if(!this.checkIfGivenLeadEndPossible(puzzle, 2)) {
         if(puzzle.options.is2LeadEnd) {
-          isGlobalOK = false;
+          methodokuError();
           return isChanged;
         }
         else {
@@ -725,7 +725,7 @@ class DelightMinor extends Strategy {
     
     if(!is3rdsPossible && !is4thsPossible) {
       console.log("Things have gone wrong with delight places");
-      isGlobalOK = false;
+      methodokuError();
     }
       
     return isChanged;
@@ -788,7 +788,7 @@ class UpTo2PlacesPerChange extends Strategy {
       }
       
       if(placeCount > 2){
-        isGlobalOK = false;
+        methodokuError();
       }
     }
     
@@ -971,6 +971,9 @@ class DoNotMakeBadGuess extends Strategy {
         isChanged |= fixBell(puzzle.solution, idxRows[0], jdx, possibleRows[idxValidRows[0]][jdx]);
     }
     
+    if(idxValidRows.length == 0)
+      methodokuError();
+  
     return isChanged;
   }
   generatePlainBobLeadHeads(numBells) {
