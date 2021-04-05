@@ -353,8 +353,8 @@ function loadPuzzle() {
 }
 
 function createNewPuzzle() {
-  var numRows = document.getElementById("numberOfRows").value;
-  var numBells = document.getElementById("numberOfBells").value;
+  var numRows = parseInt(document.getElementById("numberOfRows").value);
+  var numBells = parseInt(document.getElementById("numberOfBells").value);
   var treblePathSelector = document.getElementById("trebleType");
   var treblePath = treblePathSelector.options[treblePathSelector.selectedIndex].value;
   puzzle = blankPuzzle(numRows, numBells, treblePath);
