@@ -965,10 +965,11 @@ class DoNotMakeBadGuess extends Strategy {
     
     var isChanged = false;
     if(idxValidRows.length == 1) {
-      if(config.recursionLevel == 1)
-        console.log("identified leadend/halflead row at " + idxRows[0] + ": " + possibleRows[idxValidRows[0]])
       for(var jdx=0; jdx<puzzle.numBells; jdx++)
         isChanged |= fixBell(puzzle.solution, idxRows[0], jdx, possibleRows[idxValidRows[0]][jdx]);
+
+      if(isChanged && config.recursionLevel == 1)
+        console.log("Identified leadend/halflead row at " + idxRows[0] + ": " + possibleRows[idxValidRows[0]])
     }
     
     if(idxValidRows.length == 0)

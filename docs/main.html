@@ -59,20 +59,32 @@ td table td {
 
 <body>
 
-<input type = "button" onclick = "createNewPuzzle()" value = "Create new puzzle">  
+<div class="checkboxcontainer" id="puzzleLoading">
 <select id = "examplePuzzle" name = "Test puzzles">  
 <input type = "button" id = "loadPuzzle" onclick = "loadPuzzle()" value = "Load example puzzle">  
 <input type = "button" id = "runExamples" onclick = "runAllLoadedPuzzles()" value = "Run all example puzzles">  
 <a download="testResults.txt" id="downloadlink" style="display: none">Download results</a>
+</div>
 <br>
-<br>
-<label class="checkboxlabel">Number of rows</label>
-<input type = "text" id = "numberOfRows" value = "13">  
-<br>
-<br>
+<div class="container" id="puzzleCreation">
 <label class="checkboxlabel">Number of bells</label>
-<input type = "text" id = "numberOfBells" value = "6">  
-<br>
+<div class="horizontalgap" style="width:5px"></div>
+<input type="number"  class="numberInput" id = "numberOfBells" value = "6">  
+<div class="horizontalgap" style="width:10px"></div>
+<label class="checkboxlabel">Number of rows</label>
+<div class="horizontalgap" style="width:5px"></div>
+<input type="number"  class="numberInput" id = "numberOfRows" value = "13">  
+<div class="horizontalgap" style="width:10px"></div>
+<label class="selectlabel">Treble path</label>
+<div class="horizontalgap" style="width:5px"></div>
+<select id = "trebleType" name = "Treble path">
+  <option value="none">None</option>
+  <option value="plainHunt">Plain hunt</option>
+  <option value="trebleBob">Treble-bob</option>
+</select>
+<div class="horizontalgap" style="width:10px"></div>
+<input type = "button" onclick = "createNewPuzzle()" value = "Create new puzzle">  
+</div>
 <br>
 <div class="checkboxcontainer" id="optionControls">
 <div class="checkbox"><input type="checkbox" id="palindromicSymmetry" onclick="updateConfig();" unchecked>

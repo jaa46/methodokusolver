@@ -1,4 +1,9 @@
-function blankPuzzle(numRows, numBells) {
+function blankPuzzle(numRows, numBells, treblePath) {
+  
+  if(treblePath == "plainHunt")
+    numRows = 2*numBells + 1;
+  else if(treblePath == "trebleBob")
+    numRows = 4*numBells + 1;
   
   var start = [];
   for(var i=0; i<numRows; i++)
@@ -12,6 +17,25 @@ function blankPuzzle(numRows, numBells) {
           row.push(0);
       }
       start.push(row);
+  }
+  
+  if(treblePath == "plainHunt") {
+    for(var j=0; j<numBells; j++) {
+      start[j][j] = 1;
+      start[numRows-2 - j][j] = 1;
+    }
+    start[numRows-1][0] = 1;
+  }
+  else if(treblePath == "trebleBob") {
+    var pattern = [0,1,0,1];
+    for(var j=0; j<numBells; j+=2) {
+      for(var k=0; k<pattern.length; k++) {
+        var p = pattern[k] + j;
+        start[4*(j/2)+k][p] = 1;
+        start[numRows-2 - (4*(j/2)+k)][p] = 1;
+      }
+    }
+    start[numRows-1][0] = 1;
   }
   
   return {
@@ -331,7 +355,9 @@ function loadPuzzle() {
 function createNewPuzzle() {
   var numRows = document.getElementById("numberOfRows").value;
   var numBells = document.getElementById("numberOfBells").value;
-  puzzle = blankPuzzle(numRows, numBells);
+  var treblePathSelector = document.getElementById("trebleType");
+  var treblePath = treblePathSelector.options[treblePathSelector.selectedIndex].value;
+  puzzle = blankPuzzle(numRows, numBells, treblePath);
   updateGrid(true)
 }
 
