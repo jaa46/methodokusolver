@@ -286,24 +286,77 @@ class NoLongPlaces extends Strategy {
   step(puzzle) {
     var isChanged = false;
     
-    var directions = [+1, -1];
-    for(var ddx=0; ddx<directions.length; ddx++) {
-      for(var idx=0; idx<puzzle.numRows; idx++)
-        for(var jdx=0; jdx<puzzle.numBells; jdx++) {
-          var info = isPositionDetermined(puzzle.solution, idx, jdx);
-          
-          var idxNext = iterateIndex(puzzle.solution, idx, directions[ddx]);
-          var idxNextNext = iterateIndex(puzzle.solution, idxNext, directions[ddx]);
-          
-          var infoNext = isPositionDetermined(puzzle.solution, idxNext, jdx);
-          
-          var isOK = directions[ddx] * (idxNextNext - idx) > 0;
-          
-          if(info.isFixed && infoNext.isFixed && isOK && info.bell == infoNext.bell)
-            isChanged = isChanged | removeBell(puzzle.solution, idxNextNext, jdx, info.bell);
-        }
-    }
+    //If a place has been made, prevent the same bell making further places
+    for(var idx=0; idx<puzzle.numRows; idx++)
+      for(var jdx=0; jdx<puzzle.numBells; jdx++) {
+        var info = isPositionDetermined(puzzle.solution, idx, jdx);
+
+        if(!info.isFixed)
+          continue;
+        
+        var nextBlow = takeStepForward(puzzle, idx, jdx, info.bell, +1);
+        if(nextBlow.jdx != jdx || nextBlow.bell <= 0 || nextBlow.jdx < 0)
+          continue;
+        
+        //Prevent a place being made afterwards
+        var nextNextBlow = takeStepForward(puzzle, nextBlow.idx, jdx, nextBlow.bell, +1);
+        if(nextNextBlow.bell > 0)
+          isChanged |= removeBell(puzzle.solution, nextNextBlow.idx, jdx, nextNextBlow.bell);
+
+        //Prevent a place being made beforehand
+        var previousBlow = takeStepBackward(puzzle, idx, jdx, info.bell, +1);
+        if(previousBlow.bell > 0)
+          isChanged |= removeBell(puzzle.solution, previousBlow.idx, jdx, previousBlow.bell);
+      }
     
+    //Prevent a bell ringing in a particular blow if it would result in long places
+    for(var idx=0; idx<puzzle.numRows; idx++)
+      for(var jdx=0; jdx<puzzle.numBells; jdx++) {
+        var info = isPositionDetermined(puzzle.solution, idx, jdx);
+        
+        if(!info.isFixed)
+          continue;
+        
+        var nextBlow = takeStepForward(puzzle, idx, jdx, info.bell, +1);
+        
+        var assumeNoJump;
+        var jdxNext = nextBlow.jdx;
+        if(nextBlow.jdx < 0) {
+          assumeNoJump = true;
+          jdxNext = jdx;
+        }
+        else
+          assumeNoJump = false;
+        
+        var nextNextBlow = takeStepForward(puzzle, nextBlow.idx, jdxNext, nextBlow.bell, +1);
+        
+        if(assumeNoJump && nextBlow.bell != nextNextBlow.bell)
+          continue;
+        
+        if(nextNextBlow.bell > 0)
+          if(nextNextBlow.jdx == jdx) {
+            //Prevent this bell ringing 3 blows in the same place in a row
+            isChanged |= removeBell(puzzle.solution, nextBlow.idx, jdx, nextBlow.bell);
+            
+            //Additionally, prevent causing another bell to make 3 blows at the front or the back by dodging in 2/3
+            if(jdx == 1)
+              isChanged |= removeBell(puzzle.solution, nextBlow.idx, 2, nextBlow.bell);
+            else if(jdx == 2)
+              isChanged |= removeBell(puzzle.solution, nextBlow.idx, 1, nextBlow.bell);
+            else if(jdx == puzzle.numBells-3)
+              isChanged |= removeBell(puzzle.solution, nextBlow.idx, puzzle.numBells-2, nextBlow.bell);
+            else if(jdx == puzzle.numBells-2)
+              isChanged |= removeBell(puzzle.solution, nextBlow.idx, puzzle.numBells-3, nextBlow.bell);
+          }
+          else {
+            // Also prevent 2,2,3 and 3,2,2
+            if(compare([jdx, nextNextBlow.jdx], [1,2]))
+              isChanged |= removeBell(puzzle.solution, nextBlow.idx, 1, nextBlow.bell);
+            else if(compare([jdx, nextNextBlow.jdx], [puzzle.numBells-3,puzzle.numBells-2]))
+              isChanged |= removeBell(puzzle.solution, nextBlow.idx, puzzle.numBells-2, nextBlow.bell);
+          }
+      }
+
     return isChanged;
   }
 }

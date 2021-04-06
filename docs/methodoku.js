@@ -918,7 +918,7 @@ function takeStepForward(puzzle, idx, jdx, bell, direction) {
   var jdxNext;
   var bellNext;
   if(idxNext == 1 && direction > 0) {
-    //Jumped from end  to the start
+    //Jumped from end to the start
     // Do we know which bell we've become?
     var info = isPositionDetermined(puzzle.solution, 0, jdx);
     bellNext = info.bell;
