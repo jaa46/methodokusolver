@@ -974,6 +974,35 @@ class DoNotMakeBadGuess extends Strategy {
       isChanged |= this.guessLE_HL(puzzle, this.doPropagate, cyclicLeadHeads, [idxLH, idxLH-1], [idxHLH, idxHLH-1], -1, config);
     }
 
+    //Guess an extra hunt bull
+    if(puzzle.options.numberOfHuntBells > 0) {
+      var huntBells = identifyHuntBells(puzzle);
+      if(huntBells.fixed.length < puzzle.options.numberOfHuntBells) {
+        var possibles = [];
+        for(var idx=0; idx<huntBells.possible.length; idx++) {
+          var puzzleNew = copyGrid(puzzle);
+          
+          var newHuntBell = huntBells.possible[idx];
+          fixBell(puzzleNew.solution, puzzle.numRows-1, newHuntBell-1, newHuntBell);
+          
+          //TODO: This assumes treble is already fixed
+          var treble = 1;
+          var posToRemove = trackBellTillJunction(puzzleNew, treble, puzzle.numRows-1, 0, puzzle.numRows-2, 0, +1, this.doPropagate, config);
+          if(posToRemove.length == 0)
+            possibles.push(newHuntBell);
+        }
+        
+        if(possibles.length == 1) {
+          console.log("Setting additional huntbell: " + possibles[0])
+          isChanged |= fixBell(puzzle.solution, puzzle.numRows-1, possibles[0]-1, possibles[0]);
+        }
+        
+        if(possibles.length == 0) {
+          methodokuError()
+        }
+      }
+    }
+
     return isChanged;
   }
   guessLE_HL(puzzle, withPropagation, possibleLeads, idxLead, idxHalfLead, direction, config) {

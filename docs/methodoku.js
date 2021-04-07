@@ -855,6 +855,11 @@ function trackBellTillJunction(puzzle, bell, idx, jdx, idxPrev, jdxPrev, directi
       isValid &= isCourseRightLength;
     }
     
+    if(puzzleWorking.options.numberOfHuntBells > 0) {
+      var isHuntBellsOK = checkNumberOfHuntBells(puzzleWorking);
+      isValid &= isHuntBellsOK;
+    }
+    
     if (puzzleWorking.options.atMost2PlacesPerChange) {
       var isPlacesValid = checkUpToTwoPlacesPerChange(puzzleWorking);
       isValid &= isPlacesValid;
@@ -1259,6 +1264,28 @@ if(isRowComplete[idx]) {
     }
 }
 return isInvalid;
+}
+
+function checkNumberOfHuntBells(puzzle) {
+  var huntBells = identifyHuntBells(puzzle);
+  return huntBells.fixed.length <= puzzle.options.numberOfHuntBells;
+}
+
+function identifyHuntBells(puzzle) {
+  var possible = [];
+  var fixed = [];
+  for(var jdx=0; jdx<puzzle.numBells; jdx++) {
+    var info = isPositionDetermined(puzzle.solution, puzzle.numRows-1, jdx);
+    if(info.isFixed) {
+      if(info.bell == jdx+1)
+        fixed.push(jdx+1);
+    }
+    else {
+      if(isPositionPossible(puzzle.solution, puzzle.numRows-1, jdx, jdx+1))
+        possible.push(jdx+1);
+    }
+  }
+  return {'possible' : possible, 'fixed' : fixed};
 }
 
 function checkRowPossible(board, idx, row) {
