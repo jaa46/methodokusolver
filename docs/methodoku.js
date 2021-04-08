@@ -444,7 +444,8 @@ function takeStep(updateMessage=true) {
 
   var isChanged = false;
   var message = getStatus();
-    
+  var decision = "";  
+  
   for(var idx = 0; idx < strategies.length && puzzle.isValid; idx++)
     if (strategies[idx].isActive(puzzle))
     {
@@ -456,7 +457,15 @@ function takeStep(updateMessage=true) {
       
       var isOK = true;
       try {
-        isChanged = strategies[idx].step(puzzle);
+        if(strategies[idx].isRecursive) {
+          var result = strategies[idx].step(puzzle);
+          isChanged = result.isChanged;
+          if(isChanged)
+            decision = result.decision;
+        }
+        else {
+          isChanged = strategies[idx].step(puzzle);
+        }
       }
       catch(err) {
         isOK = false;
@@ -470,7 +479,10 @@ function takeStep(updateMessage=true) {
         }
         else {
           message = "Success using: " + getStrategyName(strategies[idx]) + " (" + countSolvedBlows(puzzle) + " " + countRemainingOptions(puzzle) + ")";
-
+          
+          if(decision.length > 0)
+            message += "\n" + decision;
+        
           if(saveOutput)
             testResults += message + "\n";
           console.log(message)
@@ -751,35 +763,42 @@ function takeGuess(puzzle, numberOptions, withPropagation, config) {
               continue;
             
             var isCandidatePossible = [];
+            var judgements = [];
+            
             for(var cdx=0; cdx<candidates.length; cdx++) {
               //Determine consequences of picking this candidate
-              var posToRemove = trackBellTillJunction(puzzle, bellOptions[bdx], idxNew, candidates[cdx], idx, jdx, directions[ddx], 
+              var judgement = trackBellTillJunction(puzzle, bellOptions[bdx], idxNew, candidates[cdx], idx, jdx, directions[ddx], 
                 withPropagation, config);
               
-              if(startingFromKnownPoint && posToRemove.length > 0) {
+              if(startingFromKnownPoint && !judgement.isValid) {
+                var posToRemove = judgement.badChoice;
+                var message = "Removing bell " + bellOptions[bdx] + " from " + posToRemove[0] + "," + posToRemove[1];
                 if(config.recursionLevel == 1)
-                  console.log("Remove bell " + bellOptions[bdx] + " from " + posToRemove[0] + "," + posToRemove[1])
+                  console.log(message)
                 isChanged = removeBell(puzzle.solution, posToRemove[0], posToRemove[1], bellOptions[bdx]);
-                return isChanged;
+                return { "isChanged": isChanged, "decision": message, "evidence": judgement };
               }
 
-              isCandidatePossible.push(posToRemove.length == 0);
+              isCandidatePossible.push(judgement.isValid);
+              if(!judgement.isValid)
+                judgements.push(judgement);
             }
             
             if(!startingFromKnownPoint && !isCandidatePossible.some(idx => idx)) {
               //If we guessed a position initially and then all
               //possibilities from there resulted in error, than
               //the bell cannot be in this guessed location
+              var message = "Removing bell " + bellOptions[bdx] + " from " + idxStart + "," + jdx;
               if(config.recursionLevel == 1)
-                console.log("Remove bell " + bellOptions[bdx] + " from " + idxStart + "," + jdx)
+                console.log(message)
               isChanged = removeBell(puzzle.solution, idxStart, jdx, bellOptions[bdx]);
-              return isChanged;
+              return { "isChanged": isChanged, "decision": message, "evidence": judgements };
             }
           }
         }
         
       }
-  return isChanged;
+  return { "isChanged": isChanged, "decision": "", "judgement": [] };
 }
 
 function trackBellTillJunction(puzzle, bell, idx, jdx, idxPrev, jdxPrev, direction, withPropagation, config) {
@@ -791,6 +810,8 @@ function trackBellTillJunction(puzzle, bell, idx, jdx, idxPrev, jdxPrev, directi
   puzzleWorking.solution[idxPrev][jdxPrev] = bell;
   puzzleWorking.solution[idx][jdx] = bell;
   var isValid = true;
+  
+  var judgements = [];
   
   if(withPropagation) {
     //Determine consequences of making this guess
@@ -811,9 +832,14 @@ function trackBellTillJunction(puzzle, bell, idx, jdx, idxPrev, jdxPrev, directi
             //Ignores strategies without propagation, as the pretence of not tree searching is rapidly disappearing
             if(config.recursionLevel < config.recursionLimit && strategies[idxS].doPropagate && strategies[idxS].recursionLimit == config.recursionLimit) {
               try {
-                isChanged |= strategies[idxS].step(puzzleWorking, config.recursionLevel + 1);
+                var result = strategies[idxS].step(puzzleWorking, config.recursionLevel + 1);
+                isChanged |= result.isChanged;
+                if(result.decision.length > 0)
+                  judgements.push(result);
               }
               catch(err) {
+                //TODO: Record failures when errors occur while recursing
+                
                 isValid = false;
               }
             }
@@ -914,7 +940,7 @@ function trackBellTillJunction(puzzle, bell, idx, jdx, idxPrev, jdxPrev, directi
   else{
     history = []; 
   }
-  return history;
+  return { "isValid": isValid, "badChoice": history, "counterExample": puzzleWorking, "furtherEvidence": judgements };
 }
 
 function takeStepForward(puzzle, idx, jdx, bell, direction) {
