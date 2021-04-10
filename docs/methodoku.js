@@ -481,7 +481,10 @@ function showCounterExample(index) {
   //Highlight the starting guesses which resulted in this counterexample
   var startingPoints = counterExample.stepsGuessed;
   for(var idxP = 0; idxP<startingPoints.length; idxP++) {
-    disp.rows[startingPoints[idxP].idx].cells[startingPoints[idxP].jdx].style.backgroundColor = "rgba(0, 0, 255, 0.6)";
+    if(idxP == 0)
+      disp.rows[startingPoints[idxP].idx].cells[startingPoints[idxP].jdx].style.backgroundColor = "rgba(0, 0, 255, 0.6)";
+    else
+      disp.rows[startingPoints[idxP].idx].cells[startingPoints[idxP].jdx].style.backgroundColor = "rgba(0, 0, 255, 0.3)";      
   }
 }
 
