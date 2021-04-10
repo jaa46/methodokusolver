@@ -893,6 +893,10 @@ class ConsecutivePlaceLimit extends Strategy {
               }
             }
           }
+          
+        //Prevent places being made in 2nds/N-1st place, as these will cause consecutive places
+        if(limit == 0 && (jdx == 1 || jdx == puzzle.numRows-2) && info1.isfixed)
+          isChanged |= removeBell(puzzle.solution, idx+1, jdx, info1.bell);
       } 
     
     return isChanged;
