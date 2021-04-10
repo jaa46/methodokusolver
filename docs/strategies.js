@@ -895,7 +895,7 @@ class ConsecutivePlaceLimit extends Strategy {
           }
           
         //Prevent places being made in 2nds/N-1st place, as these will cause consecutive places
-        if(limit == 0 && (jdx == 1 || jdx == puzzle.numRows-2) && info1.isfixed)
+        if(limit == 0 && (jdx == 1 || jdx == puzzle.numBells-2) && info1.isFixed)
           isChanged |= removeBell(puzzle.solution, idx+1, jdx, info1.bell);
       } 
     
@@ -990,6 +990,10 @@ class DoNotMakeBadGuess extends Strategy {
           
           var newHuntBell = huntBells.possible[idx];
           fixBell(puzzleNew.solution, puzzle.numRows-1, newHuntBell-1, newHuntBell);
+
+          if(!puzzleNew.stepsGuessed)
+            puzzleNew.stepsGuessed = [];
+          puzzleNew.stepsGuessed.push({'bell':newHuntBell, 'idx':puzzle.numRows-1, 'jdx':newHuntBell-1});
           
           //TODO: This assumes treble is already fixed
           var treble = 1;
@@ -1004,7 +1008,7 @@ class DoNotMakeBadGuess extends Strategy {
           var isChanged = fixBell(puzzle.solution, puzzle.numRows-1, possibles[0]-1, possibles[0]);
           var message = "";
           if(isChanged)
-            message = "Setting additional huntbell: " + possibles[0];
+            message = "Setting additional huntbell: " + possibles[0] + "\n" + "All other possibilities ruled out.";
           if(config.recursionLevel == 1)
             console.log(message)
           result = {"isChanged": isChanged, "decision": message, "evidence": judgements }
@@ -1068,7 +1072,8 @@ class DoNotMakeBadGuess extends Strategy {
         isChanged |= fixBell(puzzle.solution, idxRows[0], jdx, possibleRows[idxValidRows[0]][jdx]);
 
       if(isChanged && config.recursionLevel == 1) {
-        message = "Identified leadend/halflead row at " + idxRows[0] + ": " + possibleRows[idxValidRows[0]];
+        message = "Identified leadend/halflead row at " + idxRows[0] + ": " + possibleRows[idxValidRows[0]] + 
+          "\n" + "All other possibilities ruled out.";
         console.log(message)
       }
     }

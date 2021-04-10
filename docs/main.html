@@ -179,6 +179,12 @@ td table td {
   </div>
   <div class="flex-item">
     <div id="counterExampleTitle"></div>
+    <div id="counterExampleSelector" style="visibility: hidden"> 
+      <label class="checkboxlabel">Possibility: </label> 
+      <input type = "number" id="selectedCounterExample" class= "numberInput" min="1" onchange="showCounterExample(parseInt(this.value)-1)"> 
+      <label id="counterExampleNumber">of N</label> 
+      </div>
+    <div id="counterExampleReason"></div>
     <table id="counterExamples">
     </table>
   </div>

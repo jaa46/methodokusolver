@@ -412,18 +412,62 @@ function buildStrategyTable() {
   }
 }
 
+var counterExamples = [];
 function showReasoning(result) {
+    
+  var title = document.getElementById("counterExampleTitle");
+  title.style.visibility = "visible";
+  title.innerText = result.decision;
+  
+  var evidence = result.evidence;
+  
+  if(evidence.length == 0)
+    return
+  
+  var selector = document.getElementById("counterExampleSelector");
+  if(Array.isArray(evidence)) {
+    counterExamples = evidence;
+
+    showCounterExample(0);
+    
+    selector.style.visibility = "visible";
+ 
+    var numberLabel = document.getElementById("counterExampleNumber");
+    numberLabel.innerText = "of " + counterExamples.length;
+ 
+    var control = document.getElementById("selectedCounterExample");
+    control.value = 1;
+    control.max = counterExamples.length;
+  }
+  else {
+    //Only one counterexample - disable selection
+    selector.style.visibility = "hidden";
+
+    counterExamples = [evidence];
+    
+    showCounterExample(0); 
+  }
+}
+
+function showCounterExample(index) {
+  var evidence = counterExamples[index];
+
+  var reason = document.getElementById("counterExampleReason");
+  if(evidence.reasonForFailure.length > 0) {
+    reason.innerText = evidence.reasonForFailure;
+    reason.style.visibility = "visible";
+  }
+  else {
+    reason.innerText = "";
+    reason.style.visibility = "hidden";
+  }
+    
+  var counterExample = evidence.counterExample;
+  
   var disp = document.getElementById("counterExamples");
   for(var i=disp.rows.length-1; i>=0; i--)
       disp.deleteRow(i);
   
-  var evidence = result.evidence;
-  
-  //TODO: Show multiple reasons for failure when guessing
-  if(Array.isArray(evidence))
-    evidence = evidence[0];
-  
-  var counterExample = evidence.counterExample;
   for(var i=0; i<counterExample.numRows; i++)
   {
     var row = disp.insertRow(i);
@@ -434,21 +478,28 @@ function showReasoning(result) {
     }
   }
 
-  var title = document.getElementById("counterExampleTitle");
-  title.style.visibility = "visible";
-  title.innerText = result.decision;
-  
-  if(evidence.reasonForFailure)
-    title.innerText += "\n" + evidence.reasonForFailure;
+  //Highlight the starting guesses which resulted in this counterexample
+  var startingPoints = counterExample.stepsGuessed;
+  for(var idxP = 0; idxP<startingPoints.length; idxP++) {
+    disp.rows[startingPoints[idxP].idx].cells[startingPoints[idxP].jdx].style.backgroundColor = "rgba(0, 0, 255, 0.6)";
+  }
 }
 
 function hideReasoning() {
+  counterExamples = [];
+  
   var disp = document.getElementById("counterExamples");
   for(var i=disp.rows.length-1; i>=0; i--)
       disp.deleteRow(i);
     
   var title = document.getElementById("counterExampleTitle");
   title.style.visibility = "hidden";
+
+  var reason = document.getElementById("counterExampleReason");
+  reason.style.visibility = "hidden";
+  
+  var selector = document.getElementById("counterExampleSelector");
+  selector.style.visibility = "hidden";
 }
 
 var strategies = [new WorkingBells(), new OncePerRow(), 
@@ -849,8 +900,18 @@ function trackBellTillJunction(puzzle, bell, idx, jdx, idxPrev, jdxPrev, directi
     console.log("Things have gone wrong: bad inputs to trackBellTillJunction")
   
   var puzzleWorking = copyGrid(puzzle);
-  puzzleWorking.solution[idxPrev][jdxPrev] = bell;
-  puzzleWorking.solution[idx][jdx] = bell;
+  
+  if(!puzzleWorking.stepsGuessed)
+    puzzleWorking.stepsGuessed = [];
+
+  var isChanged = fixBell(puzzleWorking.solution, idxPrev, jdxPrev, bell);
+  if(isChanged)
+    puzzleWorking.stepsGuessed.push({'bell':bell, 'idx':idxPrev, 'jdx':jdxPrev});
+  
+  isChanged = fixBell(puzzleWorking.solution, idx, jdx, bell);
+  if(isChanged)
+    puzzleWorking.stepsGuessed.push({'bell':bell, 'idx':idx, 'jdx':jdx});
+  
   var isValid = true;
   
   var judgements = [];
@@ -917,8 +978,8 @@ function trackBellTillJunction(puzzle, bell, idx, jdx, idxPrev, jdxPrev, directi
     
     if(puzzleWorking.options.palindromicSymmetry) {
       //If this implies a pair of bells are opposites, check if this is possible
-      var info = checkPalindromicSymmetryPossible(puzzleWorking, bell, idxPrev, idx, jdxPrev, jdx, direction);
-      if(!info.isPalindromicValid) {
+      var isPalindromicValid = checkPalindromicSymmetryPossible(puzzleWorking, bell, idxPrev, idx, jdxPrev, jdx, direction);
+      if(!isPalindromicValid) {
         isValid = false;
         reasonForFailure = "Palindromic symmetry not possible";
       }
