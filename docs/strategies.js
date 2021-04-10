@@ -895,7 +895,7 @@ class ConsecutivePlaceLimit extends Strategy {
           }
           
         //Prevent places being made in 2nds/N-1st place, as these will cause consecutive places
-        if(limit == 0 && (jdx == 1 || jdx == puzzle.numRows-2) && info1.isfixed)
+        if(limit == 0 && (jdx == 1 || jdx == puzzle.numBells-2) && info1.isFixed)
           isChanged |= removeBell(puzzle.solution, idx+1, jdx, info1.bell);
       } 
     
@@ -925,8 +925,9 @@ class DoNotMakeBadDecision extends Strategy {
     var config = {'recursionLevel': recursionLevel, 'recursionLimit': this.recursionLimit};
     
     //Only guess from fixed bells
-    var isChanged = takeGuess(puzzle, 1, this.doPropagate, config);
-    return isChanged;
+    var result = takeGuess(puzzle, 1, this.doPropagate, config);
+    
+    return result;
   }
 }
 
@@ -953,80 +954,92 @@ class DoNotMakeBadGuess extends Strategy {
     
     //Guess the bell for each blows with up to 2 possibilities, and test out
     //each of the options to see if a guess can be ruled out
-    var isChanged = takeGuess(puzzle, 2, this.doPropagate, config)
+    var result = takeGuess(puzzle, 2, this.doPropagate, config)
     
     //Guess plain bob leadends
-    if(puzzle.options.plainBobLeadEnd) {
+    if(!result.isChanged && puzzle.options.plainBobLeadEnd) {
       var plainBobLeadHeads = this.generatePlainBobLeadHeads(puzzle.numBells);
       var idxHLH = Math.floor(puzzle.numRows/2);
       var idxLH = puzzle.numRows - 1;
-      isChanged |= this.guessLE_HL(puzzle, this.doPropagate, plainBobLeadHeads, [idxLH, idxLH-1], [idxHLH, idxHLH-1], -1, config);
-
-      if(puzzle.options.palindromicSymmetry) {
+      result = this.guessLE_HL(puzzle, this.doPropagate, plainBobLeadHeads, [idxLH, idxLH-1], [idxHLH, idxHLH-1], -1, config);
+      
+      if(!result.isChanged && puzzle.options.palindromicSymmetry) {
         var plainBobLeadEnds = this.generatePlainBobLeadEnds(puzzle.numBells);
         var idxHLE = Math.floor(puzzle.numRows/2) - 1;
         var idxLE = puzzle.numRows - 2;
-        isChanged |= this.guessLE_HL(puzzle, this.doPropagate, plainBobLeadEnds, [idxLE, idxLE+1], [idxHLE, idxHLE+1], +1, config);
+        result = this.guessLE_HL(puzzle, this.doPropagate, plainBobLeadEnds, [idxLE, idxLE+1], [idxHLE, idxHLE+1], +1, config);
       }
     }
 
     //Guess cyclic leadends
-    if(puzzle.options.cyclicLeadEnd) {
+    if(!result.isChanged && puzzle.options.cyclicLeadEnd) {
       var cyclicLeadHeads = this.generateCyclicLeadHeads(puzzle.numBells);
       var idxHLH = Math.floor(puzzle.numRows/2);
       var idxLH = puzzle.numRows - 1;
-      isChanged |= this.guessLE_HL(puzzle, this.doPropagate, cyclicLeadHeads, [idxLH, idxLH-1], [idxHLH, idxHLH-1], -1, config);
+      result = this.guessLE_HL(puzzle, this.doPropagate, cyclicLeadHeads, [idxLH, idxLH-1], [idxHLH, idxHLH-1], -1, config);
     }
 
     //Guess an extra hunt bull
-    if(puzzle.options.numberOfHuntBells > 0) {
+    if(!result.isChanged && puzzle.options.numberOfHuntBells > 0) {
       var huntBells = identifyHuntBells(puzzle);
       if(huntBells.fixed.length < puzzle.options.numberOfHuntBells) {
         var possibles = [];
+        var judgements = [];
         for(var idx=0; idx<huntBells.possible.length; idx++) {
           var puzzleNew = copyGrid(puzzle);
           
           var newHuntBell = huntBells.possible[idx];
           fixBell(puzzleNew.solution, puzzle.numRows-1, newHuntBell-1, newHuntBell);
+
+          if(!puzzleNew.stepsGuessed)
+            puzzleNew.stepsGuessed = [];
+          puzzleNew.stepsGuessed.push({'bell':newHuntBell, 'idx':puzzle.numRows-1, 'jdx':newHuntBell-1});
           
           //TODO: This assumes treble is already fixed
           var treble = 1;
-          var posToRemove = trackBellTillJunction(puzzleNew, treble, puzzle.numRows-1, 0, puzzle.numRows-2, 0, +1, this.doPropagate, config);
-          if(posToRemove.length == 0)
+          var judgement = trackBellTillJunction(puzzleNew, treble, puzzle.numRows-1, 0, puzzle.numRows-2, 0, +1, this.doPropagate, config);
+          if(judgement.isValid)
             possibles.push(newHuntBell);
+          else
+            judgements.push(judgement);
         }
         
         if(possibles.length == 1) {
-          console.log("Setting additional huntbell: " + possibles[0])
-          isChanged |= fixBell(puzzle.solution, puzzle.numRows-1, possibles[0]-1, possibles[0]);
+          var isChanged = fixBell(puzzle.solution, puzzle.numRows-1, possibles[0]-1, possibles[0]);
+          var message = "";
+          if(isChanged)
+            message = "Setting additional huntbell: " + possibles[0] + "\n" + "All other possibilities ruled out.";
+          if(config.recursionLevel == 1)
+            console.log(message)
+          result = {"isChanged": isChanged, "decision": message, "evidence": judgements }
         }
-        
+
         if(possibles.length == 0) {
           methodokuError()
         }
       }
     }
 
-    return isChanged;
+    return result;
   }
   guessLE_HL(puzzle, withPropagation, possibleLeads, idxLead, idxHalfLead, direction, config) {
-    var isChanged = false;
     
     //Test out leadhead/end
     var jdxLead = [0,0];
-    isChanged |= this.tryEachRow(puzzle, withPropagation, possibleLeads, idxLead, jdxLead, direction, config);
+    var result = this.tryEachRow(puzzle, withPropagation, possibleLeads, idxLead, jdxLead, direction, config);
     
-    if(puzzle.options.doubleSymmetry) {
+    if(!result.isChanged && puzzle.options.doubleSymmetry) {
       //Test out half-leadhead/end
       var possibleHeadLeads = possibleLeads.map(function(v) {return v.reverse();});
       var jdxHalfLead = [puzzle.numBells-1, puzzle.numBells-1];
-      isChanged |= this.tryEachRow(puzzle, withPropagation, possibleHeadLeads, idxHalfLead, jdxHalfLead, direction, config);      
+      result = this.tryEachRow(puzzle, withPropagation, possibleHeadLeads, idxHalfLead, jdxHalfLead, direction, config);      
     }
     
-    return isChanged;
+    return result;
   }
   tryEachRow(puzzle, withPropagation, possibleRows, idxRows, jdxRows, direction, config) {
     var idxValidRows = [];
+    var judgements = [];
     for(var rdx=0; rdx<possibleRows.length; rdx++) {
       var row = possibleRows[rdx];
       
@@ -1042,26 +1055,37 @@ class DoNotMakeBadGuess extends Strategy {
         }
         
         var treble = 1;
-        var posToRemove = trackBellTillJunction(puzzleWorking, treble, idxRows[1], jdxRows[1], idxRows[0], jdxRows[0], 
+        var judgement = trackBellTillJunction(puzzleWorking, treble, idxRows[1], jdxRows[1], idxRows[0], jdxRows[0], 
           direction, withPropagation, config);
-        if(posToRemove.length == 0)
+        if(judgement.isValid)
           idxValidRows.push(rdx);
+        else
+          judgements.push(judgement);
+      
       }
     }
     
     var isChanged = false;
+    var message = "";
     if(idxValidRows.length == 1) {
       for(var jdx=0; jdx<puzzle.numBells; jdx++)
         isChanged |= fixBell(puzzle.solution, idxRows[0], jdx, possibleRows[idxValidRows[0]][jdx]);
 
-      if(isChanged && config.recursionLevel == 1)
-        console.log("Identified leadend/halflead row at " + idxRows[0] + ": " + possibleRows[idxValidRows[0]])
+      if(isChanged && config.recursionLevel == 1) {
+        message = "Identified leadend/halflead row at " + idxRows[0] + ": " + possibleRows[idxValidRows[0]] + 
+          "\n" + "All other possibilities ruled out.";
+        console.log(message)
+      }
+    }
+    else{
+      //Only report back if a conclusion has been found
+      judgements = [];
     }
     
     if(idxValidRows.length == 0)
       methodokuError();
   
-    return isChanged;
+    return {"isChanged": isChanged, "decision": message, "evidence": judgements};
   }
   generatePlainBobLeadHeads(numBells) {
     // 123456

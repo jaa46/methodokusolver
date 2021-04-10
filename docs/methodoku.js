@@ -412,6 +412,99 @@ function buildStrategyTable() {
   }
 }
 
+var counterExamples = [];
+function showReasoning(result) {
+    
+  var title = document.getElementById("counterExampleTitle");
+  title.style.visibility = "visible";
+  title.innerText = result.decision;
+  
+  var evidence = result.evidence;
+  
+  if(evidence.length == 0)
+    return
+  
+  var selector = document.getElementById("counterExampleSelector");
+  if(Array.isArray(evidence)) {
+    counterExamples = evidence;
+
+    showCounterExample(0);
+    
+    selector.style.visibility = "visible";
+ 
+    var numberLabel = document.getElementById("counterExampleNumber");
+    numberLabel.innerText = "of " + counterExamples.length;
+ 
+    var control = document.getElementById("selectedCounterExample");
+    control.value = 1;
+    control.max = counterExamples.length;
+  }
+  else {
+    //Only one counterexample - disable selection
+    selector.style.visibility = "hidden";
+
+    counterExamples = [evidence];
+    
+    showCounterExample(0); 
+  }
+}
+
+function showCounterExample(index) {
+  var evidence = counterExamples[index];
+
+  var reason = document.getElementById("counterExampleReason");
+  if(evidence.reasonForFailure.length > 0) {
+    reason.innerText = evidence.reasonForFailure;
+    reason.style.visibility = "visible";
+  }
+  else {
+    reason.innerText = "";
+    reason.style.visibility = "hidden";
+  }
+    
+  var counterExample = evidence.counterExample;
+  
+  var disp = document.getElementById("counterExamples");
+  for(var i=disp.rows.length-1; i>=0; i--)
+      disp.deleteRow(i);
+  
+  for(var i=0; i<counterExample.numRows; i++)
+  {
+    var row = disp.insertRow(i);
+    for(var j=0; j<counterExample.numBells; j++)
+    {
+      var cell = row.insertCell(j);
+      cell.innerHTML = counterExample.solution[i][j];
+    }
+  }
+
+  //Highlight the starting guesses which resulted in this counterexample
+  var startingPoints = counterExample.stepsGuessed;
+  for(var idxP = 0; idxP<startingPoints.length; idxP++) {
+    if(idxP == 0)
+      disp.rows[startingPoints[idxP].idx].cells[startingPoints[idxP].jdx].style.backgroundColor = "rgba(0, 0, 255, 0.6)";
+    else
+      disp.rows[startingPoints[idxP].idx].cells[startingPoints[idxP].jdx].style.backgroundColor = "rgba(0, 0, 255, 0.3)";      
+  }
+}
+
+function hideReasoning() {
+  counterExamples = [];
+  
+  var disp = document.getElementById("counterExamples");
+  for(var i=disp.rows.length-1; i>=0; i--)
+      disp.deleteRow(i);
+    
+  var title = document.getElementById("counterExampleTitle");
+  title.style.visibility = "hidden";
+
+  var reason = document.getElementById("counterExampleReason");
+  reason.style.visibility = "hidden";
+  
+  var selector = document.getElementById("counterExampleSelector");
+  selector.style.visibility = "hidden";
+}
+
 var strategies = [new WorkingBells(), new OncePerRow(), 
   new OnlyOneOptionInRow(), new NoJumping(), new FillSquares(), new RemoveDeadEnds(), new AllDoubleChanges(), new NoLongPlaces(),
   new NoNminus1thPlacesExceptUnderTreble(), new RightPlace(), new NumberOfHuntBells(), 
@@ -444,7 +537,9 @@ function takeStep(updateMessage=true) {
 
   var isChanged = false;
   var message = getStatus();
-    
+  var decision = "";  
+  hideReasoning();
+  
   for(var idx = 0; idx < strategies.length && puzzle.isValid; idx++)
     if (strategies[idx].isActive(puzzle))
     {
@@ -456,7 +551,17 @@ function takeStep(updateMessage=true) {
       
       var isOK = true;
       try {
-        isChanged = strategies[idx].step(puzzle);
+        if(strategies[idx].isRecursive) {
+          var result = strategies[idx].step(puzzle);
+          isChanged = result.isChanged;
+          if(isChanged) {
+            decision = result.decision;
+            showReasoning(result);
+          }
+        }
+        else {
+          isChanged = strategies[idx].step(puzzle);
+        }
       }
       catch(err) {
         isOK = false;
@@ -470,7 +575,10 @@ function takeStep(updateMessage=true) {
         }
         else {
           message = "Success using: " + getStrategyName(strategies[idx]) + " (" + countSolvedBlows(puzzle) + " " + countRemainingOptions(puzzle) + ")";
-
+          
+          if(decision.length > 0)
+            message += "\n" + decision;
+        
           if(saveOutput)
             testResults += message + "\n";
           console.log(message)
@@ -751,35 +859,42 @@ function takeGuess(puzzle, numberOptions, withPropagation, config) {
               continue;
             
             var isCandidatePossible = [];
+            var judgements = [];
+            
             for(var cdx=0; cdx<candidates.length; cdx++) {
               //Determine consequences of picking this candidate
-              var posToRemove = trackBellTillJunction(puzzle, bellOptions[bdx], idxNew, candidates[cdx], idx, jdx, directions[ddx], 
+              var judgement = trackBellTillJunction(puzzle, bellOptions[bdx], idxNew, candidates[cdx], idx, jdx, directions[ddx], 
                 withPropagation, config);
               
-              if(startingFromKnownPoint && posToRemove.length > 0) {
+              if(startingFromKnownPoint && !judgement.isValid) {
+                var posToRemove = judgement.badChoice;
+                var message = "Removing bell " + bellOptions[bdx] + " from " + posToRemove[0] + "," + posToRemove[1];
                 if(config.recursionLevel == 1)
-                  console.log("Remove bell " + bellOptions[bdx] + " from " + posToRemove[0] + "," + posToRemove[1])
+                  console.log(message)
                 isChanged = removeBell(puzzle.solution, posToRemove[0], posToRemove[1], bellOptions[bdx]);
-                return isChanged;
+                return { "isChanged": isChanged, "decision": message, "evidence": judgement };
               }
 
-              isCandidatePossible.push(posToRemove.length == 0);
+              isCandidatePossible.push(judgement.isValid);
+              if(!judgement.isValid)
+                judgements.push(judgement);
             }
             
             if(!startingFromKnownPoint && !isCandidatePossible.some(idx => idx)) {
               //If we guessed a position initially and then all
               //possibilities from there resulted in error, than
               //the bell cannot be in this guessed location
+              var message = "Removing bell " + bellOptions[bdx] + " from " + idxStart + "," + jdx;
               if(config.recursionLevel == 1)
-                console.log("Remove bell " + bellOptions[bdx] + " from " + idxStart + "," + jdx)
+                console.log(message)
               isChanged = removeBell(puzzle.solution, idxStart, jdx, bellOptions[bdx]);
-              return isChanged;
+              return { "isChanged": isChanged, "decision": message, "evidence": judgements };
             }
           }
         }
         
       }
-  return isChanged;
+  return { "isChanged": isChanged, "decision": "", "judgement": [] };
 }
 
 function trackBellTillJunction(puzzle, bell, idx, jdx, idxPrev, jdxPrev, direction, withPropagation, config) {
@@ -788,9 +903,22 @@ function trackBellTillJunction(puzzle, bell, idx, jdx, idxPrev, jdxPrev, directi
     console.log("Things have gone wrong: bad inputs to trackBellTillJunction")
   
   var puzzleWorking = copyGrid(puzzle);
-  puzzleWorking.solution[idxPrev][jdxPrev] = bell;
-  puzzleWorking.solution[idx][jdx] = bell;
+  
+  if(!puzzleWorking.stepsGuessed)
+    puzzleWorking.stepsGuessed = [];
+
+  var isChanged = fixBell(puzzleWorking.solution, idxPrev, jdxPrev, bell);
+  if(isChanged)
+    puzzleWorking.stepsGuessed.push({'bell':bell, 'idx':idxPrev, 'jdx':jdxPrev});
+  
+  isChanged = fixBell(puzzleWorking.solution, idx, jdx, bell);
+  if(isChanged)
+    puzzleWorking.stepsGuessed.push({'bell':bell, 'idx':idx, 'jdx':jdx});
+  
   var isValid = true;
+  
+  var judgements = [];
+  var reasonForFailure = "";
   
   if(withPropagation) {
     //Determine consequences of making this guess
@@ -804,6 +932,7 @@ function trackBellTillJunction(puzzle, bell, idx, jdx, idxPrev, jdxPrev, directi
               isChanged |= strategies[idxS].step(puzzleWorking);
             }
             catch(err) {
+              reasonForFailure = "Failure applying strategy " + getStrategyName(strategies[idxS]);
               isValid = false;
             }
           }
@@ -811,15 +940,24 @@ function trackBellTillJunction(puzzle, bell, idx, jdx, idxPrev, jdxPrev, directi
             //Ignores strategies without propagation, as the pretence of not tree searching is rapidly disappearing
             if(config.recursionLevel < config.recursionLimit && strategies[idxS].doPropagate && strategies[idxS].recursionLimit == config.recursionLimit) {
               try {
-                isChanged |= strategies[idxS].step(puzzleWorking, config.recursionLevel + 1);
+                var result = strategies[idxS].step(puzzleWorking, config.recursionLevel + 1);
+                isChanged |= result.isChanged;
+                if(result.decision.length > 0)
+                  judgements.push(result);
               }
               catch(err) {
+                //TODO: Record failures when errors occur while recursing
+                reasonForFailure = "Failure applying strategy " + getStrategyName(strategies[idxS]);
                 isValid = false;
               }
             }
           }
           
-          isValid &= checkSolutionValid(puzzleWorking);
+          var isSolutionValid = checkSolutionValid(puzzleWorking);
+          if(!isSolutionValid) {
+            isValid = false;
+            reasonForFailure = "Invalid solution reached applying strategy " + getStrategyName(strategies[idxS]);
+          }
         }
       
       if(!isValid || !isChanged)
@@ -835,39 +973,60 @@ function trackBellTillJunction(puzzle, bell, idx, jdx, idxPrev, jdxPrev, directi
   if(isValid) {
     if(puzzleWorking.options.trueInLead) {
       var isFalse = checkLeadFalse(puzzleWorking, idx);
-      isValid = !isFalse;
+      if(isFalse) {
+        reasonForFailure = "Lead is false";
+        isValid = false;
+      }
     }
     
     if(puzzleWorking.options.palindromicSymmetry) {
       //If this implies a pair of bells are opposites, check if this is possible
       var isPalindromicValid = checkPalindromicSymmetryPossible(puzzleWorking, bell, idxPrev, idx, jdxPrev, jdx, direction);
-      isValid &= isPalindromicValid;
+      if(!isPalindromicValid) {
+        isValid = false;
+        reasonForFailure = "Palindromic symmetry not possible";
+      }
     }
     
     //Check for cycles if applicable
     if(puzzleWorking.options.fullCourse) {
       var isOK = checkNoShortCycles(puzzleWorking);
-      isValid &= isOK;
+      if(!isOK) {
+        isValid = false;
+        reasonForFailure = "Not full course";
+      }
     }
     
     if(puzzleWorking.options.numberOfLeads > 0) {
       var isCourseRightLength = checkCourseLength(puzzleWorking);
-      isValid &= isCourseRightLength;
+      if(!isCourseRightLength) {
+        isValid = false;
+        reasonForFailure = "Course incorrect length";
+      }
     }
     
     if(puzzleWorking.options.numberOfHuntBells > 0) {
       var isHuntBellsOK = checkNumberOfHuntBells(puzzleWorking);
-      isValid &= isHuntBellsOK;
+      if(!isHuntBellsOK) {
+        isValid = false;
+        reasonForFailure = "Too many hunt bells";
+      }
     }
     
     if (puzzleWorking.options.atMost2PlacesPerChange) {
       var isPlacesValid = checkUpToTwoPlacesPerChange(puzzleWorking);
-      isValid &= isPlacesValid;
+      if(!isPlacesValid) {
+        isValid = false;
+        reasonForFailure = "Too many places per change";
+      }
     }
     
     if (puzzleWorking.options.consecutivePlaceLimit >= 0) {
       var noConsecutivePlaces = checkConsecutivePlaceLimit(puzzleWorking);
-      isValid &= noConsecutivePlaces;
+      if(!noConsecutivePlaces) {
+        isValid = false;
+        reasonForFailure = "Too many consecutive places";
+      }
     }
     
     var state = formState(puzzleWorking, idxPrev, jdxPrev, idx, jdx, bell, direction);
@@ -894,12 +1053,16 @@ function trackBellTillJunction(puzzle, bell, idx, jdx, idxPrev, jdxPrev, directi
       var N = puzzleWorking.numBells;
       if(puzzleWorking.options.noLongPlaces && placeCount == 2 && state.jdxs[3] >= 0 && state.jdxs[0] >= 0 &&
         (state.jdxs[1]==1 && !(isPositionPossible(puzzleWorking.solution, state.idxs[0], 0, state.bells[0]) && isPositionPossible(puzzleWorking.solution, state.idxs[3], 0, state.bells[3])) ||
-        state.jdxs[1]==N-2 && !(isPositionPossible(puzzleWorking.solution, state.idxs[0], N-1, state.bells[0]) && isPositionPossible(puzzleWorking.solution, state.idxs[3], N-1, state.bells[3]))))
-        isValid = false;
+        state.jdxs[1]==N-2 && !(isPositionPossible(puzzleWorking.solution, state.idxs[0], N-1, state.bells[0]) && isPositionPossible(puzzleWorking.solution, state.idxs[3], N-1, state.bells[3])))) {
+          isValid = false;
+          reasonForFailure = "Bell " + state.bells[1] + " made long places";
+        }
         
       if (puzzleWorking.options.noLongPlaces) {
-        if (state.bells.slice(1).every(function(b) {return b > 0;}) && (compare(state.jdxs.slice(1), [1,1,2]) || compare(state.jdxs.slice(1), [N-3,N-2,N-2])))
+        if (state.bells.slice(1).every(function(b) {return b > 0;}) && (compare(state.jdxs.slice(1), [1,1,2]) || compare(state.jdxs.slice(1), [N-3,N-2,N-2]))) {
           isValid = false;
+          reasonForFailure = "Bell " + state.bells[1] + " caused another bell to make long places";          
+        }
       }
       
       history.push([state.idxs[3], state.jdxs[3]]);
@@ -914,7 +1077,7 @@ function trackBellTillJunction(puzzle, bell, idx, jdx, idxPrev, jdxPrev, directi
   else{
     history = []; 
   }
-  return history;
+  return { "isValid": isValid, "badChoice": history, "counterExample": puzzleWorking, "furtherEvidence": judgements, "reasonForFailure": reasonForFailure };
 }
 
 function takeStepForward(puzzle, idx, jdx, bell, direction) {
