@@ -406,10 +406,26 @@ function buildStrategyTable() {
   for(var idx=0; idx<strategies.length; idx++) {
     var row = display.insertRow(idx);
     var cell = row.insertCell();
-    cell.innerText = getStrategyName(strategies[idx]);
     cell.className = "strategyDisplay";
     cell.id = "strategy_" + idx;
+    
+    var str = getStrategyName(strategies[idx]);
+    cell.innerHTML = '<a href="https://jaa46.github.io/methodokusolver/#' + convertToID(str) + '" target="_blank">' + str + '</a>';
   }
+}
+
+function convertToID(str) {
+  str = str.toLowerCase();
+  str = str.replace('=', '');
+  str = str.replace(/(^-\d-|^\d|^-\d|^--)/,'a$1').replace(/[\W]/g, '-');
+  
+  const reg = /\-{2,}/g;
+  str = str.replaceAll(reg, '-');
+  
+  if (str.charAt(str.length - 1) == '-')
+    str = str.slice(0, -1);
+  
+  return str;
 }
 
 var counterExamples = [];
