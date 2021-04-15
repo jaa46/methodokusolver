@@ -521,8 +521,8 @@ function hideReasoning() {
   selector.style.visibility = "hidden";
 }
 
-var strategies = [new WorkingBells(), new OncePerRow(), 
-  new OnlyOneOptionInRow(), new NoJumping(), new FillSquares(), new RemoveDeadEnds(), new AllDoubleChanges(), new NoLongPlaces(),
+var strategies = [new OncePerRow(), new OnlyOneOptionInRow(), new NoJumping(), new FillSquares(), new RemoveDeadEnds(), 
+  new WorkingBells(), new AllDoubleChanges(), new NoLongPlaces(),
   new NoNminus1thPlacesExceptUnderTreble(), new RightPlace(), new NumberOfHuntBells(), 
   new ApplyPalindromicSymmetry(), new ApplyDoubleSymmetry(), new ApplyMirrorSymmetry(), 
   new Is2OrNLeadEnd(), new NoShortCycles(), new SurpriseMinor(), new DelightMinor(), new TrebleBobMinor(), 
