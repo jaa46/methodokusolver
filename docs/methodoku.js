@@ -1335,10 +1335,20 @@ return isValid;
 function checkCourseLength(puzzle) {
   
   var cycleLengths = [];
+  
+  var isBellChecked = [];
+  for(var jdx =0; jdx<puzzle.numBells; jdx++)
+    isBellChecked.push(false);
+  
   for(var jdx=0; jdx<puzzle.numBells; jdx++) {
+    
+    if(isBellChecked[jdx])
+      continue;
+    
     var bell = jdx+1;
     var count = 1;
     while (true) {
+      isBellChecked[bell-1] = true;
       var info = isPositionDetermined(puzzle.solution, puzzle.numRows-1, bell-1);
       if(info.isFixed && info.bell == jdx+1) {
         cycleLengths.push(count);
