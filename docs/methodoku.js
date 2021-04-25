@@ -987,10 +987,18 @@ function trackBellTillJunction(puzzle, bell, idx, jdx, idxPrev, jdxPrev, directi
   history.push([idx, jdx]);
   
   if(isValid) {
-    if(puzzleWorking.options.trueInLead) {
+    if(puzzleWorking.options.trueInLead || puzzleWorking.options.trueInCourse) {
       var isFalse = checkLeadFalse(puzzleWorking, idx);
       if(isFalse) {
         reasonForFailure = "Lead is false";
+        isValid = false;
+      }
+    }
+
+    if(puzzleWorking.options.trueInCourse) {
+      var isFalse = checkCourseFalse(puzzleWorking);
+      if(isFalse) {
+        reasonForFailure = "Course is false";
         isValid = false;
       }
     }
@@ -1441,6 +1449,36 @@ if(isRowComplete[idx]) {
       if(isInvalid)
         break;
     }
+}
+return isInvalid;
+}
+
+function checkCourseFalse(puzzle) {
+//Check whether the course contains any repeated rows
+
+var isInvalid = false;
+var isRowComplete = integerRange(0, puzzle.numRows-1).map(function(idx) { return isRowDetermined(puzzle, idx); });
+if(isRowComplete[isRowComplete.length-1]) {
+  var rowsInCourse = [];
+  for(var r=1; r<puzzle.numRows; r++)
+    if(isRowComplete[r])
+      rowsInCourse.push(copy(puzzle.solution[r]));
+  
+  var idxStart = 0;
+  var numKnownRows = rowsInCourse.length;
+  var perm = rowsInCourse[rowsInCourse.length-1];
+  
+  while(!compareStrict(rowsInCourse[rowsInCourse.length-1], integerRange(1, puzzle.numBells))) {    
+    for(var idx=idxStart; idx<idxStart+numKnownRows; idx++) {
+      var newRow = [];
+      rowsInCourse[idx].forEach(bell => newRow.push(perm[bell-1]));
+      rowsInCourse.push(newRow);
+    }
+    idxStart += numKnownRows;
+  }
+
+  var setRows = new Set(rowsInCourse);
+  isInvalid = setRows.size != rowsInCourse.length;
 }
 return isInvalid;
 }
