@@ -26,7 +26,7 @@ If a bell is moving from one place to another, the bells moving in the opposite 
 If a trail of possibilities for a particular bell reaches a dead end where there are no options in the next row, this 'dead-end' trail is removed.
 
 ## WorkingBells
-If it's specified that all bells expect the hunt bells are working bells, prevent each working bell from coming home at the end of the lead.
+If it's specified that all bells except the hunt bells are working bells, prevent each working bell from coming home at the end of the lead.
 *Active if "All working except treble" or "Two hunt bells" is selected, or the treble is fixed and "Number of leads" is one less than the number of bells.*
 
 ## AllDoubleChanges
