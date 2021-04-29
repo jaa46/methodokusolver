@@ -1477,6 +1477,12 @@ if(isRowComplete[isRowComplete.length-1]) {
     idxStart += numKnownRows;
   }
 
+  rowsInCourse.forEach(function(row, index, arr) {
+    arr[index] = row.reduce(function (accumulator, currentValue) {
+    return accumulator + currentValue.toString()
+  }, "");
+  });
+  
   var setRows = new Set(rowsInCourse);
   isInvalid = setRows.size != rowsInCourse.length;
 }
