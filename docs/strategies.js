@@ -44,7 +44,7 @@ class WorkingBells extends Strategy {
           isChanged |= removeBell(puzzle.solution, puzzle.numRows-1, b-1, b);
           
           if(puzzle.options.doubleSymmetry) {
-            var idxHLH = Math.floor(puzzle.numRows/2) + 1;
+            var idxHLH = Math.floor(puzzle.numRows/2);
             isChanged |= removeBell(puzzle.solution, idxHLH, puzzle.numBells-b, b);
           }
         }

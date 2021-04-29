@@ -12,8 +12,12 @@ function compareStrict(expected, actual) {
 
 function copyGrid(orig_board) {
   var newBoard = JSON.parse(JSON.stringify(orig_board));
-  //TODO: Make sure this has no side effects
-  newBoard.options = orig_board.options;
+
+  //Copy options
+  newBoard.options = [];
+  for(const [key, value] of Object.entries(orig_board.options))
+    newBoard.options[key] = value;
+
   return newBoard;
 }
 
