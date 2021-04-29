@@ -1556,7 +1556,7 @@ if(isRowComplete[isRowComplete.length-1]) {
 
   rowsInCourse.forEach(function(row, index, arr) {
     arr[index] = row.reduce(function (accumulator, currentValue) {
-    return accumulator + currentValue.toString()
+    return accumulator + num2bell(currentValue);
   }, "");
   });
   
