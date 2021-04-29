@@ -522,7 +522,7 @@ function hideReasoning() {
 }
 
 var strategies = [new OncePerRow(), new OnlyOneOptionInRow(), new NoJumping(), new FillSquares(), new RemoveDeadEnds(), 
-  new WorkingBells(), new AllDoubleChanges(), new NoLongPlaces(),
+  new WorkingBells(), new AllDoubleChanges(), new AllTripleChanges(), new NoLongPlaces(),
   new NoNminus1thPlacesExceptUnderTreble(), new RightPlace(), new NumberOfHuntBells(), 
   new ApplyPalindromicSymmetry(), new ApplyDoubleSymmetry(), new ApplyMirrorSymmetry(), 
   new Is2OrNLeadEnd(), new NoShortCycles(), new SurpriseMinor(), new DelightMinor(), new TrebleBobMinor(), 
@@ -1193,6 +1193,8 @@ return {
 
 function checkSolutionValid(puzzle) {
 
+//TODO: Add checks for the selected options
+
 var isValid = true;
 
 for(var idx=0; idx<puzzle.numRows; idx++)
@@ -1445,6 +1447,69 @@ function checkConsecutivePlaceLimit(puzzle) {
       }
     }
   return isValid;
+}
+ 
+function ensureOnePlacePerChange(puzzle) {
+  
+  var hasChanged = false;
+  
+  for(var idx=0; idx<puzzle.numRows-1; idx++) {
+    var possiblePlaces = [];
+    for(var place = 1; place<=puzzle.numBells; place+=2) {
+      if(isSinglePlacePossible(puzzle, idx, idx+1, place))
+        possiblePlaces.push(place);
+    }
+    
+    if(possiblePlaces.length == 1)
+      hasChanged |= applySinglePlace(puzzle, idx, possiblePlaces[0]);
+    
+    if(possiblePlaces.length == 0)
+      methodokuError();
+  }
+  
+  //Prevent places in even positions
+  for(var idx=0; idx<puzzle.numRows-1; idx++)
+    for(var jdx=1; jdx<puzzle.numBells-1; jdx+=2) {
+      var info = isPositionDetermined(puzzle.solution, idx, jdx);
+      if(info.isFixed)
+        hasChanged |= removeBell(puzzle.solution, idx+1, jdx, info.bell);
+    }
+    
+  return hasChanged;
+}
+
+function isSinglePlacePossible(puzzle, idx1, idx2, place) {
+  var tf = true;
+  for(var below=0; below<place-1; below+=2)
+    tf &= canPairCross(puzzle, idx1, below, idx2, below+1);
+  
+  tf &= canPairCross(puzzle, idx1, place-1, idx2, place-1);
+  
+  for(var above=place; above<puzzle.numBells-1; above+=2)
+    tf &= canPairCross(puzzle, idx1, above, idx2, above+1);
+  
+  return tf;
+}
+
+function applySinglePlace(puzzle, idx, place) {
+  var hasChanged = false;
+  for(var below=0; below<place-1; below+=2)
+    hasChanged |= makePairCross(puzzle, idx, below, idx+1, below+1);
+  
+  hasChanged |= makeBlowsConsistent(puzzle.solution,  idx, place-1, idx+1, place-1);
+
+  for(var above=place; above<puzzle.numBells-1; above+=2)
+    hasChanged |= makePairCross(puzzle, idx, above, idx+1, above+1);
+  
+  return hasChanged;
+}
+
+function canPairCross(puzzle, idx1, jdx1, idx2, jdx2) {
+  return areBlowsConsistent(puzzle.solution, idx1, jdx1, idx2, jdx2) && areBlowsConsistent(puzzle.solution, idx1, jdx2, idx2, jdx1);
+}
+
+function makePairCross(puzzle, idx1, jdx1, idx2, jdx2) {
+  return makeBlowsConsistent(puzzle.solution, idx1, jdx1, idx2, jdx2) || makeBlowsConsistent(puzzle.solution, idx1, jdx2, idx2, jdx1);
 }
  
 function checkLeadFalse(puzzle, idx) {

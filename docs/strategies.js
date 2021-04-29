@@ -252,30 +252,19 @@ class RemoveDeadEnds extends Strategy {
 
 class AllDoubleChanges extends Strategy {
   isActive(puzzle) {
-    return puzzle.options.allDoubleChanges
+    return puzzle.options.allDoubleChanges && puzzle.numBells == 5
   }
   step(puzzle) {
-    var isChanged = false;
-    if(puzzle.numBells != 5)
-    {
-      console.log("Not implemented yet")
-      return isChanged;
-    }
-    
-    for(var idx=0; idx<puzzle.numRows-1; idx++)
-      for(var jdx=0; jdx<puzzle.numBells; jdx++){
-        var info = isPositionDetermined(puzzle.solution, idx, jdx);
-        if(info.isFixed && (jdx+1 == 2 || jdx+1 == 4))
-          isChanged = isChanged | removeBell(puzzle.solution, idx+1, jdx, info.bell);
-      }
-    for(var idx=puzzle.numRows-1; idx>0; idx--)
-      for(var jdx=0; jdx<puzzle.numBells; jdx++){
-        var info = isPositionDetermined(puzzle.solution, idx, jdx);
-        if(info.isFixed && (jdx+1 == 2 || jdx+1 == 4))
-          isChanged = isChanged | removeBell(puzzle.solution, idx-1, jdx, info.bell);
-      }
-    
-    return isChanged;
+    return ensureOnePlacePerChange(puzzle);
+  }
+}
+
+class AllTripleChanges extends Strategy {
+  isActive(puzzle) {
+    return puzzle.options.allTripleChanges && puzzle.numBells == 7
+  }
+  step(puzzle) {
+    return ensureOnePlacePerChange(puzzle);
   }
 }
 

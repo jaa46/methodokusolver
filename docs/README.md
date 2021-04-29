@@ -33,6 +33,10 @@ If it's specified that all bells except the hunt bells are working bells, preven
 On five bells, this strategy ensures all the changes are double i.e. there's only one place made per change.
 *Active if "All double changes" is selected*
 
+## AllTripleChanges
+On seven bells, this strategy ensures all the changes are triple i.e. there's only one place made per change.
+*Active if "All triple changes" is selected*
+
 ## NoLongPlaces
 Prevents any places longer than two blows being made. If a bell is making a place, it removes that bell as a possibility for the preceding and subsequent rows. Additionally, it prevents possibilities like dodging in 2-3 which would result in a bell leading for at least 3 blows.
 *Active if "No long places" is selected*
