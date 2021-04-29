@@ -12,8 +12,12 @@ function compareStrict(expected, actual) {
 
 function copyGrid(orig_board) {
   var newBoard = JSON.parse(JSON.stringify(orig_board));
-  //TODO: Make sure this has no side effects
-  newBoard.options = orig_board.options;
+
+  //Copy options
+  newBoard.options = [];
+  for(const [key, value] of Object.entries(orig_board.options))
+    newBoard.options[key] = value;
+
   return newBoard;
 }
 
@@ -37,4 +41,13 @@ function integerRange(lowEnd, highEnd) {
      allOptions.push(lowEnd++);
   }
   return allOptions;
+}
+
+function isPrime(n) {
+ if (n%2==0) return (n==2);
+ var m = Math.sqrt(n);
+ for (var i=3;i<=m;i+=2) {
+  if (n%i==0) return false;
+ }
+ return true;
 }

@@ -11,7 +11,7 @@ class Strategy {
 class WorkingBells extends Strategy {
   isActive(puzzle)
   {
-    return puzzle.options.allWorkingExceptTreble || puzzle.options.twoHuntBells || puzzle.options.numberOfLeads > 0;
+    return puzzle.options.allWorkingExceptTreble || puzzle.options.twoHuntBells || puzzle.options.numberOfLeads > 0 || puzzle.options.numberOfHuntBells >= 0;
   }
   step(puzzle)
   {
@@ -20,7 +20,8 @@ class WorkingBells extends Strategy {
     var treble = 1;
     
     //If an N-1 lead course specified, see if treble has been fixed at lead end
-    if(puzzle.options.numberOfLeads == puzzle.numBells-1) {
+    //Be careful with e.g. a Triples method with leadend 1325647 (2*3=6 leads, but not all bells working)
+    if(puzzle.options.numberOfLeads == puzzle.numBells-1 && isPrime(puzzle.options.numberOfLeads)) {
       var info = isPositionDetermined(puzzle.solution, puzzle.numRows-1, 0);
       if(info.isFixed && info.bell == treble)
         //<MODIFYOPTIONS>
@@ -28,7 +29,7 @@ class WorkingBells extends Strategy {
     }
     
     //Fix treble if not working
-    if (puzzle.options.allWorkingExceptTreble)
+    if (puzzle.options.allWorkingExceptTreble || puzzle.options.twoHuntBells)
       isChanged |= fixBell(puzzle.solution, puzzle.numRows-1, 0, treble);
     
     //Fix two if two hunt bells specified
@@ -41,9 +42,19 @@ class WorkingBells extends Strategy {
       if (firstWorkingBell > 0)
         for(var b=firstWorkingBell; b<=puzzle.numBells; b++) {
           isChanged |= removeBell(puzzle.solution, puzzle.numRows-1, b-1, b);
-        }      
+          
+          if(puzzle.options.doubleSymmetry) {
+            var idxHLH = Math.floor(puzzle.numRows/2);
+            isChanged |= removeBell(puzzle.solution, idxHLH, puzzle.numBells-b, b);
+          }
+        }
     }
     
+    //Handle principles
+    if(puzzle.options.numberOfHuntBells == 0)
+      for(var bell=1; bell<=puzzle.numBells; bell++)
+        isChanged |= removeBell(puzzle.solution, puzzle.numRows-1, bell-1, bell);
+      
     return isChanged;
   }
 }
