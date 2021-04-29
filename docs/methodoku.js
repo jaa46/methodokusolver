@@ -1496,7 +1496,7 @@ function applySinglePlace(puzzle, idx, place) {
   for(var below=0; below<place-1; below+=2)
     hasChanged |= makePairCross(puzzle, idx, below, idx+1, below+1);
   
-  hasChanged |= makeBlowsConsistent(puzzle.solution,  idx, place-1, idx+1, place-1);
+  hasChanged |= makeBlowsConsistent(puzzle.solution, idx, place-1, idx+1, place-1);
 
   for(var above=place; above<puzzle.numBells-1; above+=2)
     hasChanged |= makePairCross(puzzle, idx, above, idx+1, above+1);
@@ -1509,7 +1509,9 @@ function canPairCross(puzzle, idx1, jdx1, idx2, jdx2) {
 }
 
 function makePairCross(puzzle, idx1, jdx1, idx2, jdx2) {
-  return makeBlowsConsistent(puzzle.solution, idx1, jdx1, idx2, jdx2) || makeBlowsConsistent(puzzle.solution, idx1, jdx2, idx2, jdx1);
+  var DR = makeBlowsConsistent(puzzle.solution, idx1, jdx1, idx2, jdx2);
+  var DL = makeBlowsConsistent(puzzle.solution, idx1, jdx2, idx2, jdx1);
+  return DR || DL;
 }
  
 function checkLeadFalse(puzzle, idx) {
