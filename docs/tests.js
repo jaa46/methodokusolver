@@ -194,7 +194,7 @@ else
         break;
 
         case "-Fc":
-            line = "trueInLead"; // TODO: Make this trueInCourse
+            line = "trueInCourse";
         break;
         
         case "-m*(12)":
