@@ -319,18 +319,20 @@ class NoLongPlaces extends Strategy {
         
         var nextBlow = takeStepForward(puzzle, idx, jdx, info.bell, +1);
         
-        var assumeNoJump;
+        var assumePlaceMade;
+        var idxNext = nextBlow.idx;
         var jdxNext = nextBlow.jdx;
-        if(nextBlow.jdx < 0) {
-          assumeNoJump = true;
+        if(nextBlow.jdx < 0 && idxNext == puzzle.solution.length - 1) {
+          assumePlaceMade = true;
           jdxNext = jdx;
         }
         else
-          assumeNoJump = false;
+          assumePlaceMade = false;
         
         var nextNextBlow = takeStepForward(puzzle, nextBlow.idx, jdxNext, nextBlow.bell, +1);
         
-        if(assumeNoJump && nextBlow.bell != nextNextBlow.bell)
+        if(assumePlaceMade && jdxNext != nextNextBlow.jdx)
+          //Not the case that long places are made across the leadend
           continue;
         
         if(nextNextBlow.bell > 0)
@@ -338,15 +340,17 @@ class NoLongPlaces extends Strategy {
             //Prevent this bell ringing 3 blows in the same place in a row
             isChanged |= removeBell(puzzle.solution, nextBlow.idx, jdx, nextBlow.bell);
             
-            //Additionally, prevent causing another bell to make 3 blows at the front or the back by dodging in 2/3
-            if(jdx == 1)
-              isChanged |= removeBell(puzzle.solution, nextBlow.idx, 2, nextBlow.bell);
-            else if(jdx == 2)
-              isChanged |= removeBell(puzzle.solution, nextBlow.idx, 1, nextBlow.bell);
-            else if(jdx == puzzle.numBells-3)
-              isChanged |= removeBell(puzzle.solution, nextBlow.idx, puzzle.numBells-2, nextBlow.bell);
-            else if(jdx == puzzle.numBells-2)
-              isChanged |= removeBell(puzzle.solution, nextBlow.idx, puzzle.numBells-3, nextBlow.bell);
+            if (!assumePlaceMade) {
+              //Additionally, prevent causing another bell to make 3 blows at the front or the back by dodging in 2/3
+              if(jdx == 1)
+                isChanged |= removeBell(puzzle.solution, nextBlow.idx, 2, nextBlow.bell);
+              else if(jdx == 2)
+                isChanged |= removeBell(puzzle.solution, nextBlow.idx, 1, nextBlow.bell);
+              else if(jdx == puzzle.numBells-3)
+                isChanged |= removeBell(puzzle.solution, nextBlow.idx, puzzle.numBells-2, nextBlow.bell);
+              else if(jdx == puzzle.numBells-2)
+                isChanged |= removeBell(puzzle.solution, nextBlow.idx, puzzle.numBells-3, nextBlow.bell);
+            }
           }
           else {
             // Also prevent 2,2,3 and 3,2,2
@@ -628,7 +632,8 @@ class Is2OrNLeadEnd extends Strategy {
     if(place != 2 && place != puzzle.numBells)
       console.log("Not implemented yet")
     
-    isPossible &= this.checkLeadEndPairFeasible(puzzle, place, place);
+    if(place % 2 == 0)
+      isPossible &= this.checkLeadEndPairFeasible(puzzle, place, place);
     
     if(place == 2) {
       for(var bell1 = 3; bell1<puzzle.numBells; bell1+=2)
@@ -661,14 +666,18 @@ class Is2OrNLeadEnd extends Strategy {
     var isChanged = false;
     var idxLE = puzzle.numRows-2;
     var idxLH = puzzle.numRows-1;
-    isChanged |= makeBlowsConsistent(puzzle.solution, idxLE, place-1, idxLH, place-1)
-    
-    if(place == 2)
-      for(var jdx=2; jdx<puzzle.numBells-1; jdx+=2)
+
+    var jdx = 0;
+    while(jdx < puzzle.numBells) {
+      if (jdx == 0 || jdx == place-1)
+        isChanged |= makeBlowsConsistent(puzzle.solution, idxLE, jdx, idxLH, jdx)
+      else if(jdx<puzzle.numBells-1) {        
         isChanged |= this.makePairSwappingConsistent(puzzle, jdx, jdx+1)
-    else if(place == puzzle.numBells)
-      for(var jdx=1; jdx<puzzle.numBells-2; jdx+=2)
-        isChanged |= this.makePairSwappingConsistent(puzzle, jdx, jdx+1)
+        jdx++;
+      }
+      
+      jdx++;
+    }
 
     return isChanged;
   }

@@ -559,7 +559,7 @@ function takeStep(updateMessage=true) {
   for(var idx = 0; idx < strategies.length && puzzle.isValid; idx++)
     if (strategies[idx].isActive(puzzle))
     {
-      if (!isSolved())
+      if (!isSolved(puzzle))
         highlightActiveStrategy(idx);
       
       if(updateMessage)
@@ -607,7 +607,7 @@ function takeStep(updateMessage=true) {
   
   if(!checkSolutionValid(puzzle))
     message += "Things have gone wrong."
-  else if (isSolved()) {
+  else if (isSolved(puzzle)) {
     if (!message.endsWith("Solved!"))
       message += ". Solved!"
   }
@@ -680,7 +680,7 @@ function countRemainingOptions(puzzle) {
   return count;
 }
 
-function isSolved() {
+function isSolved(puzzle) {
   return countSolvedBlows(puzzle) == puzzle.numRows * puzzle.numBells;
 }
 
@@ -976,7 +976,7 @@ function trackBellTillJunction(puzzle, bell, idx, jdx, idxPrev, jdxPrev, directi
           }
         }
       
-      if(!isValid || !isChanged)
+      if(!isValid || !isChanged || isSolved(puzzleWorking))
         break;
     }      
   }
