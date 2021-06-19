@@ -195,7 +195,7 @@ function updateGrid(rebuild=false) {
           grid.rows[i].cells[j].innerHTML = num2bell(puzzle.start[i][j]);
           grid.rows[i].cells[j].style.fontWeight = "bold"; 
         }
-        else if(puzzle.start[i][j] != 0)
+        else if(typeof(puzzle.start[i][j]) === "string" && isKillerClue(puzzle.numBells, puzzle.start[i][j]))
           grid.rows[i].cells[j].innerHTML = puzzle.start[i][j];
         else {
           grid.rows[i].cells[j].innerHTML = "";
@@ -321,12 +321,14 @@ function updatePuzzleFromGrid() {
       if(!tbl)
       {
         if(puzzle.solution.length > 0) {
-          if(grid.rows[i].cells[j].innerText)
-            // User has specified a bell
-            puzzle.solution[i][j] = bell2num(grid.rows[i].cells[j].innerText);
-          else
-            // This blow is free
-            puzzle.solution[i][j] = allOptions(puzzle.numBells);
+          // TODO: Allow user to modify killer clues without starting from scratch
+          if(!isKillerClue(puzzle.numBells, grid.rows[i].cells[j].innerText))
+            if(grid.rows[i].cells[j].innerText)
+              // User has specified a bell
+              puzzle.solution[i][j] = bell2num(grid.rows[i].cells[j].innerText);
+            else
+              // This blow is free
+              puzzle.solution[i][j] = allOptions(puzzle.numBells);
         }
         else {
           if(grid.rows[i].cells[j].innerText.length > 0) {
