@@ -76,7 +76,7 @@ function addPuzzle(text, url) {
     options[checkbox.id] = false;
   }  
 
-  //Build options from numericla inputs
+  //Build options from numerical inputs
   var numberboxes = controls.querySelectorAll('input[type="number"]');
   for (var numberbox of numberboxes) {
     options[numberbox.id] = -1;
@@ -113,6 +113,12 @@ function addPuzzle(text, url) {
     else if (line.trim() in options) {
       options[line.trim()] = true;
     } 
+    else if(line.includes("+=")) {
+      //Parse Killer clue: e.g. "A += 17"
+      var tokens = line.split("+=");
+      var boxId = "killer" + tokens[0].trim().toUpperCase() + "Sum";
+      options[boxId] = parseInt(tokens[1].trim());
+    }
     
     index++;
   }
@@ -128,7 +134,11 @@ function addPuzzle(text, url) {
       
     var row = [];
     for(var jdx=0; jdx<numBells; jdx++) {
-      row.push(bell2num(lines[index][jdx]));
+      var clue = lines[index][jdx];
+      if(isKillerClue(numBells, clue))
+        row.push(clue);
+      else
+        row.push(bell2num(clue));
     }
     start.push(row);
     index++;
@@ -141,7 +151,8 @@ function addPuzzle(text, url) {
     options: options,
     optionsDerived: [],
     numRows: numRows,
-    numBells: numBells
+    numBells: numBells,
+    killer: {clues: []}
   });
   
 }

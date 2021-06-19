@@ -45,7 +45,8 @@ function blankPuzzle(numRows, numBells, treblePath) {
     optionsDerived: [],
     numRows: numRows,
     numBells: numBells,
-    isValid: true
+    isValid: true,
+    killer: {clues: []}
   };
 }
 
@@ -55,6 +56,11 @@ puzzle.isValid = true;
 puzzle.solution = [];
 puzzle.optionsDerived = [];
 
+// Add Killer clues again
+for(var i=0; i<puzzle.killer.clues.length; i++) {
+  var c = puzzle.killer.clues[i];
+  grid.rows[c[0]].cells[c[1]].innerText = c[2];
+}
 }
  
 function buildStartingSolution() {
@@ -74,10 +80,21 @@ for(var row = 0; row < numRows; row++)
        // Bell is fixed
        rowData.push(puzzle.start[row][col]);
     }
-    else
+    else if(puzzle.start[row][col] == 0)
     {
       // Bell is free
       rowData.push(allOptions(puzzle.numBells))
+    }
+    else
+    {
+      // Special Killer case
+      var opts = allOptions(puzzle.numBells);
+      if(puzzle.start[row][col] == "E")
+        rowData.push(opts.filter(n => n % 2 == 0))
+      else if(puzzle.start[row][col] == "O")
+        rowData.push(opts.filter(n => n % 2 == 1))
+      else
+        console.log("Unknown option: " + puzzle.start[row][col])
     }
   }
   puzzle.solution.push(rowData);
@@ -98,7 +115,8 @@ function updateGrid(rebuild=false) {
 
   var isChanged = false;
 
-  var myElement = document.getElementById("grid");
+  applyKillerColours(puzzle)
+  
   for(var i=0; i<puzzle.numRows; i++)
     for(var j=0; j<puzzle.numBells; j++) {
       var tbl = document.getElementById("options" + i + "_" + j);
@@ -120,6 +138,9 @@ function updateGrid(rebuild=false) {
           if(Array.isArray(board[i][j])) {
             var tbl = document.createElement('table');
             tbl.setAttribute("id", "options" + i + "_" + j);
+
+            // Remove Killer clues
+            grid.rows[i].cells[j].innerText = "";
             grid.rows[i].cells[j].append(tbl);
 
             for(var r=0; r < numOptionRows; r++) {
@@ -174,6 +195,8 @@ function updateGrid(rebuild=false) {
           grid.rows[i].cells[j].innerHTML = num2bell(puzzle.start[i][j]);
           grid.rows[i].cells[j].style.fontWeight = "bold"; 
         }
+        else if(typeof(puzzle.start[i][j]) === "string" && isKillerClue(puzzle.numBells, puzzle.start[i][j]))
+          grid.rows[i].cells[j].innerHTML = puzzle.start[i][j];
         else {
           grid.rows[i].cells[j].innerHTML = "";
           grid.rows[i].cells[j].style.fontWeight = "normal"; 
@@ -182,6 +205,32 @@ function updateGrid(rebuild=false) {
     }
     
   return isChanged;
+}
+
+function applyKillerColours(puzzle) {
+  
+  // Reset
+  for(var i=0; i<puzzle.numRows; i++)
+    for(var j=0; j<puzzle.numBells; j++) {
+      grid.rows[i].cells[j].style.backgroundColor = "transparent";
+    }
+  
+  // Colour cells involved in Killer clues
+  var colours = listKillerColours();
+  for(var c=0; c<puzzle.killer.clues.length; c++) {
+    var clue = puzzle.killer.clues[c];
+    grid.rows[clue[0]].cells[clue[1]].style.backgroundColor = colours[clue[2].charCodeAt() - "A".charCodeAt()];
+  }
+
+  var colours = listKillerColours();
+  killerASumLabel.style.backgroundColor  = colours[0];
+  killerBSumLabel.style.backgroundColor  = colours[1];
+  killerCSumLabel.style.backgroundColor  = colours[2];
+  killerDSumLabel.style.backgroundColor  = colours[3]; 
+}
+
+function listKillerColours() {
+  return ["rgba(255,0,0,0.3)", "rgba(0,255,0,0.3)", "rgba(0,0,255,0.3)", "rgba(255,255,0,0.3)"];
 }
 
 function setBell(cell, text) {
@@ -258,6 +307,10 @@ function updateControls() {
   }
 }
 
+function isKillerClue(numBells, text) {
+  return (text.toUpperCase() == "E" || text.toUpperCase() == "O") && numBells < 11 || text.toUpperCase() >= 'A' && text.toUpperCase() <= 'D';
+}
+
 function updatePuzzleFromGrid() {
   //Update possibilities from grid
   var myElement = document.getElementById("grid");
@@ -268,18 +321,32 @@ function updatePuzzleFromGrid() {
       if(!tbl)
       {
         if(puzzle.solution.length > 0) {
-          if(grid.rows[i].cells[j].innerText)
-            // User has specified a bell
-            puzzle.solution[i][j] = bell2num(grid.rows[i].cells[j].innerText);
-          else
-            // This blow is free
-            puzzle.solution[i][j] = allOptions(puzzle.numBells);
+          // TODO: Allow user to modify killer clues without starting from scratch
+          if(!isKillerClue(puzzle.numBells, grid.rows[i].cells[j].innerText))
+            if(grid.rows[i].cells[j].innerText)
+              // User has specified a bell
+              puzzle.solution[i][j] = bell2num(grid.rows[i].cells[j].innerText);
+            else
+              // This blow is free
+              puzzle.solution[i][j] = allOptions(puzzle.numBells);
         }
         else {
           if(grid.rows[i].cells[j].innerText.length > 0) {
-            // User has specified a bell
-            var bell = bell2num(grid.rows[i].cells[j].innerText);
-            if(bell == "?") {
+            
+            var text = grid.rows[i].cells[j].innerText;
+            var bell = bell2num(text);
+            
+            // Check if a Killer clue next
+            if(isKillerClue(puzzle.numBells, text)) {
+              puzzle.killer.clues.push([i,j,text.toUpperCase()]);
+              
+              if (text == "E" || text == "O")
+                puzzle.start[i][j] = text;
+              else
+                // Blow is free
+                puzzle.start[i][j] = 0;
+            }
+            else if(bell == "?") {
               grid.rows[i].cells[j].innerText = "";
               console.log("Invalid bell specified")
 
@@ -287,6 +354,7 @@ function updatePuzzleFromGrid() {
               puzzle.start[i][j] = 0;
             }
             else
+              // Blow is fixed
               puzzle.start[i][j] = bell;
             
           }
@@ -297,6 +365,8 @@ function updatePuzzleFromGrid() {
       }
       else
       {
+        // Table for cell already exists - update if user has made a change
+        // TODO: This assumes bells are specified, rather than any Killer clues changing
         var options = [];
         for(var r=0; r<tbl.rows.length; r++)
           for(var c=0; c<tbl.rows[r].cells.length; c++)
