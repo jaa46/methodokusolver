@@ -1181,7 +1181,7 @@ class DoNotMakeBadGuess extends Strategy {
       
       var totalBox = document.getElementById("killer" + letter + "Sum");
       var total = parseInt(totalBox.value);
-      if(total < 0)
+      if(!total || total < numCells)
         continue;
       
       var options = this.generateKillerOptions(total, numCells, puzzle.numBells);
