@@ -992,14 +992,20 @@ class DoNotMakeBadGuess extends Strategy {
     if(!result.isChanged && puzzle.options.numberOfHuntBells > 0) {
       var huntBells = identifyHuntBells(puzzle);
       if(huntBells.fixed.length < puzzle.options.numberOfHuntBells) {
-        result = this.guessHuntBells(puzzle, huntBells);
+        result = this.guessHuntBells(puzzle, this.doPropagate, huntBells, config);
       }
+    }
+
+    //Guess Killer logic
+    if(!result.isChanged && puzzle.killer.clues.length > 0) {
+      result = this.guessKillerClues(puzzle, this.doPropagate, config);
     }
 
     return result;
   }
   
-  guessHuntBells(puzzle, huntBells) {
+  guessHuntBells(puzzle, withPropagation, huntBells, config) {
+    var result = {"isChanged": false, "decision": "", "evidence": []};
     var possibles = [];
     var judgements = [];
     for(var idx=0; idx<huntBells.possible.length; idx++) {
@@ -1014,7 +1020,7 @@ class DoNotMakeBadGuess extends Strategy {
       
       //TODO: This assumes treble is already fixed
       var treble = 1;
-      var judgement = trackBellTillJunction(puzzleNew, treble, puzzle.numRows-1, 0, puzzle.numRows-2, 0, +1, this.doPropagate, config);
+      var judgement = trackBellTillJunction(puzzleNew, treble, puzzle.numRows-1, 0, puzzle.numRows-2, 0, +1, withPropagation, config);
       if(judgement.isValid)
         possibles.push(newHuntBell);
       else
@@ -1161,6 +1167,118 @@ class DoNotMakeBadGuess extends Strategy {
     }
     
     return collection;
+  }
+  
+  guessKillerClues(puzzle, withPropagation, config) {
+    var message = "";
+    var letters = ["A", "B", "C", "D"];
+    
+    var result = {"isChanged": false, "decision": "", "evidence": []};
+
+    for(const letter of letters) {
+      var clues = puzzle.killer.clues.filter(c => c[2] == letter);
+      var numCells = clues.length;
+      
+      var totalBox = document.getElementById("killer" + letter + "Sum");
+      var total = parseInt(totalBox.value);
+      if(!total > 0)
+        continue;
+      
+      var options = this.generateKillerOptions(total, numCells, puzzle.numBells);
+      
+      var result = this.tryEachKillerOption(puzzle, clues, options, withPropagation, config);
+      
+      if(result.isChanged)
+        //Don't check other letters if we've made progress
+        break;
+    }
+    
+    return result;
+  }
+  
+  tryEachKillerOption(puzzle, relevantClues, possibleOptions, withPropagation, config) {
+    var idxValidOptions = [];
+    var judgements = [];
+    for(var rdx=0; rdx<possibleOptions.length; rdx++) {
+      var opt = possibleOptions[rdx];
+            
+      if(this.checkOptionPossible(puzzle.solution, relevantClues, opt)) {
+        var puzzleWorking = copyGrid(puzzle);
+        this.applyKillerOption(puzzleWorking.solution, relevantClues, opt);
+        
+        var treble = 1;
+        var judgement = trackBellTillJunction(puzzleWorking, treble, puzzle.numRows-1, 0, puzzle.numRows-2, 0, 
+          1, withPropagation, config);
+        if(judgement.isValid)
+          idxValidOptions.push(rdx);
+        else
+          judgements.push(judgement);
+      }
+    }
+    
+    var isChanged = false;
+    var message = "";
+    if(idxValidOptions.length == 1) {
+        isChanged |= this.applyKillerOption(puzzle.solution, relevantClues, possibleOptions[idxValidOptions[0]]);
+
+      if(isChanged && config.recursionLevel == 1) {
+        message = "Identified Killer option: " + possibleOptions[idxValidOptions[0]] + 
+          "\n" + "All other possibilities ruled out.";
+        console.log(message)
+      }
+    }
+    else{
+      //Only report back if a conclusion has been found
+      judgements = [];
+    }
+    
+    if(idxValidOptions.length == 0)
+      methodokuError();
+  
+    return {"isChanged": isChanged, "decision": message, "evidence": judgements};
+  }
+  
+  checkOptionPossible(solution, relevantClues, opt) {
+    var isPossible = true;
+    for(var c=0; c<relevantClues.length; c++) {
+      if(!isPositionPossible(solution, relevantClues[c][0], relevantClues[c][1], opt[c]))
+        isPossible = false;
+    }
+    return isPossible;
+  }
+  
+  applyKillerOption(board, relevantClues, opt) {
+    var isChanged = false;
+    for(var c=0; c<relevantClues.length; c++) {
+      isChanged |= fixBell(board, relevantClues[c][0], relevantClues[c][1], opt[c]);
+    }
+    return isChanged;
+  }
+  
+  generateKillerOptions(total, numCells, numBells) {
+    
+    var opts = [];
+    var opt = new Array(numCells).fill(1);
+    
+    while(true) {
+      //Record option if its sum is correct
+      if(opt.reduce((a, b) => a + b, 0) == total) {
+        opts.push(copy(opt))
+      } 
+      
+      //Generate next option
+      opt[0]++;
+      for(var e=0; e<numCells-1; e++)
+        if(opt[e] > numBells) {
+          opt[e] = 1;
+          opt[e+1]++;
+        }
+      
+      if(opt[numCells-1] > numBells)
+        break;
+    }
+    
+    return opts;
   }
 }
 
