@@ -992,45 +992,51 @@ class DoNotMakeBadGuess extends Strategy {
     if(!result.isChanged && puzzle.options.numberOfHuntBells > 0) {
       var huntBells = identifyHuntBells(puzzle);
       if(huntBells.fixed.length < puzzle.options.numberOfHuntBells) {
-        var possibles = [];
-        var judgements = [];
-        for(var idx=0; idx<huntBells.possible.length; idx++) {
-          var puzzleNew = copyGrid(puzzle);
-          
-          var newHuntBell = huntBells.possible[idx];
-          fixBell(puzzleNew.solution, puzzle.numRows-1, newHuntBell-1, newHuntBell);
-
-          if(!puzzleNew.stepsGuessed)
-            puzzleNew.stepsGuessed = [];
-          puzzleNew.stepsGuessed.push({'bell':newHuntBell, 'idx':puzzle.numRows-1, 'jdx':newHuntBell-1});
-          
-          //TODO: This assumes treble is already fixed
-          var treble = 1;
-          var judgement = trackBellTillJunction(puzzleNew, treble, puzzle.numRows-1, 0, puzzle.numRows-2, 0, +1, this.doPropagate, config);
-          if(judgement.isValid)
-            possibles.push(newHuntBell);
-          else
-            judgements.push(judgement);
-        }
-        
-        if(possibles.length == 1) {
-          var isChanged = fixBell(puzzle.solution, puzzle.numRows-1, possibles[0]-1, possibles[0]);
-          var message = "";
-          if(isChanged)
-            message = "Setting additional huntbell: " + possibles[0] + "\n" + "All other possibilities ruled out.";
-          if(config.recursionLevel == 1)
-            console.log(message)
-          result = {"isChanged": isChanged, "decision": message, "evidence": judgements }
-        }
-
-        if(possibles.length == 0) {
-          methodokuError()
-        }
+        result = this.guessHuntBells(puzzle, huntBells);
       }
     }
 
     return result;
   }
+  
+  guessHuntBells(puzzle, huntBells) {
+    var possibles = [];
+    var judgements = [];
+    for(var idx=0; idx<huntBells.possible.length; idx++) {
+      var puzzleNew = copyGrid(puzzle);
+      
+      var newHuntBell = huntBells.possible[idx];
+      fixBell(puzzleNew.solution, puzzle.numRows-1, newHuntBell-1, newHuntBell);
+
+      if(!puzzleNew.stepsGuessed)
+        puzzleNew.stepsGuessed = [];
+      puzzleNew.stepsGuessed.push({'bell':newHuntBell, 'idx':puzzle.numRows-1, 'jdx':newHuntBell-1});
+      
+      //TODO: This assumes treble is already fixed
+      var treble = 1;
+      var judgement = trackBellTillJunction(puzzleNew, treble, puzzle.numRows-1, 0, puzzle.numRows-2, 0, +1, this.doPropagate, config);
+      if(judgement.isValid)
+        possibles.push(newHuntBell);
+      else
+        judgements.push(judgement);
+    }
+    
+    if(possibles.length == 1) {
+      var isChanged = fixBell(puzzle.solution, puzzle.numRows-1, possibles[0]-1, possibles[0]);
+      var message = "";
+      if(isChanged)
+        message = "Setting additional huntbell: " + possibles[0] + "\n" + "All other possibilities ruled out.";
+      if(config.recursionLevel == 1)
+        console.log(message)
+      result = {"isChanged": isChanged, "decision": message, "evidence": judgements }
+    }
+
+    if(possibles.length == 0) {
+      methodokuError()
+    }
+    return result;
+  }
+  
   guessLE_HL(puzzle, withPropagation, possibleLeads, idxLead, idxHalfLead, direction, config) {
     
     //Test out leadhead/end
