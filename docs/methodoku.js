@@ -307,6 +307,10 @@ function updateControls() {
   }
 }
 
+function isKillerClue(numBells, text) {
+  return (text.toUpperCase() == "E" || text.toUpperCase() == "O") && numBells < 11 || text.toUpperCase() >= 'A' && text.toUpperCase() <= 'D';
+}
+
 function updatePuzzleFromGrid() {
   //Update possibilities from grid
   var myElement = document.getElementById("grid");
@@ -331,10 +335,8 @@ function updatePuzzleFromGrid() {
             var bell = bell2num(text);
             
             // Check if a Killer clue next
-            var isKiller = (text == "E" || text == "O") && puzzle.numBells < 11 || text >= 'A' && text <= 'D';
-            
-            if(isKiller) {
-              puzzle.killer.clues.push([i,j,text]);
+            if(isKillerClue(puzzle.numBells, text)) {
+              puzzle.killer.clues.push([i,j,text.toUpperCase()]);
               
               if (text == "E" || text == "O")
                 puzzle.start[i][j] = text;
