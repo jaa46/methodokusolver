@@ -912,6 +912,59 @@ class ConsecutivePlaceLimit extends Strategy {
   }  
 } 
 
+class DirectKillerLogic extends Strategy {
+  isActive(puzzle)
+  {
+    return puzzle.killer.clues.length > 0;
+  }
+  step(puzzle, recursionLevel)
+  {
+    var isChanged = false;
+    var letters = ["A", "B", "C", "D"];
+    
+    for(const letter of letters) {
+      var clues = puzzle.killer.clues.filter(c => c[2] == letter);
+      var numCells = clues.length;
+      
+      var totalBox = document.getElementById("killer" + letter + "Sum");
+      var total = parseInt(totalBox.value);
+      if(!total || total < numCells)
+        continue;
+      
+      //If one bell left, determine its value
+      var indices = integerRange(0, numCells-1);
+      var infoIsFixed = indices.map(i => isPositionDetermined(puzzle.solution, clues[i][0], clues[i][1]));
+      var numFixed = infoIsFixed.filter(i => i.isFixed).length;
+      
+      if(numFixed == numCells-1) {
+        var partialTotal = infoIsFixed.filter(i => i.isFixed).map(i => i.bell).reduce((a,b) => a + b, 0);
+        var remaining = total - partialTotal;
+        var idxUnfixed = infoIsFixed.map(i => !i.isFixed).indexOf(true);
+        isChanged |= fixBell(puzzle.solution, clues[idxUnfixed][0], clues[idxUnfixed][1], remaining);
+      }
+      
+      var obj = new DoNotMakeBadGuess();
+      var options = obj.generateKillerOptions(total, numCells, puzzle.numBells);
+      
+      // TODO: Add in restrictions in palindromic cases? Or will this be covered elsewhere already?
+      
+      //Limit options to those in the possible sums 
+      var allOptions = [].concat(...options);
+      var uniqueOptions = [...new Set(allOptions)];
+      for(var idxC=0; idxC<numCells; idxC++) {
+        if(!isPositionDetermined(puzzle.solution, clues[idxC][0], clues[idxC][1]).isFixed) {
+          var currentOptions = puzzle.solution[clues[idxC][0]][clues[idxC][1]];
+          var relevantOptions = intersect(currentOptions, uniqueOptions);
+          isChanged |= fixBell(puzzle.solution, clues[idxC][0], clues[idxC][1], relevantOptions);
+        }
+      }
+      
+    }
+
+    return isChanged;
+  }  
+}
+
 class DoNotMakeBadDecision extends Strategy {
   constructor(doPropagate, recursionLimit) {
     super();
@@ -1206,9 +1259,14 @@ class DoNotMakeBadGuess extends Strategy {
         var puzzleWorking = copyGrid(puzzle);
         this.applyKillerOption(puzzleWorking.solution, relevantClues, opt);
         
-        var treble = 1;
-        var judgement = trackBellTillJunction(puzzleWorking, treble, puzzle.numRows-1, 0, puzzle.numRows-2, 0, 
-          1, withPropagation, config);
+        var bell = opt[0];
+        var idx = relevantClues[0][0];
+        var jdx = relevantClues[0][1];
+        var idxPrev = -1;
+        var jdxPrev = -1;
+        var direction = 1;
+        var judgement = trackBellTillJunction(puzzleWorking, bell, idx, jdx, idxPrev, jdxPrev, 
+          direction, withPropagation, config);
         if(judgement.isValid)
           idxValidOptions.push(rdx);
         else
