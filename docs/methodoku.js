@@ -1676,3 +1676,17 @@ function checkRowPossible(board, idx, row) {
     isOK &= isPositionPossible(board, idx, jdx, row[jdx]);
   return isOK;
 }
+
+function findOpposite(puzzle, bell) {
+  if(!isShiftedSymmetryPoint(puzzle)) {
+    var opposite = puzzle.solution[puzzle.numRows-2][bell-1];
+    if(Array.isArray(opposite))
+      opposite = -1;
+  }
+  else {
+    console.log('Not implemented yet')
+    methodokuError()
+  }
+  
+  return opposite;
+}

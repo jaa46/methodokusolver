@@ -946,7 +946,22 @@ class DirectKillerLogic extends Strategy {
       var obj = new DoNotMakeBadGuess();
       var options = obj.generateKillerOptions(total, numCells, puzzle.numBells);
       
-      // TODO: Add in restrictions in palindromic cases? Or will this be covered elsewhere already?
+      //Initial attempt to restrict options in palindromic cases
+      if(numCells == 2 && puzzle.options.palindromicSymmetry) {
+        //Require options to be consistent if rows are opposites and positions in the change match
+        if(clues[0][1] == clues[1][1] && clues[0][0] + clues[1][0] == puzzle.numRows - 2) {
+          //This pair of bells must be opposites
+          function isPairValid(opt) {
+            var bell1 = opt[0];
+            var bell2 = opt[1];
+            var opposite1 = findOpposite(puzzle, bell1);
+            var opposite2 = findOpposite(puzzle, bell2);
+            return !(opposite1 > 0 && opposite2 > 0 && (opposite1 != bell2 || opposite2 != bell1));
+          }
+          
+          options = options.filter(o => isPairValid(o));
+        }
+      }
       
       //Limit options to those in the possible sums 
       var allOptions = [].concat(...options);
