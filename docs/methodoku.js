@@ -596,7 +596,7 @@ var strategies = [new OncePerRow(), new OnlyOneOptionInRow(), new NoJumping(), n
   new NoNminus1thPlacesExceptUnderTreble(), new RightPlace(), new NumberOfHuntBells(), 
   new ApplyPalindromicSymmetry(), new ApplyDoubleSymmetry(), new ApplyMirrorSymmetry(), 
   new Is2OrNLeadEnd(), new NoShortCycles(), new SurpriseMinor(), new DelightMinor(), new TrebleBobMinor(), 
-  new UpTo2PlacesPerChange(), new ConsecutivePlaceLimit(), 
+  new UpTo2PlacesPerChange(), new ConsecutivePlaceLimit(), new DirectKillerLogic(),
   new DoNotMakeBadDecision(false), new DoNotMakeBadGuess(false), 
   new ApplyPalindromicSymmetryFull(), new ApplyDoubleSymmetryFull(), new ApplyMirrorSymmetryFull(), 
   new DoNotMakeBadDecision(true), new DoNotMakeBadGuess(true), new DoNotMakeBadDecision(true, 2), new DoNotMakeBadGuess(true, 2)];
@@ -781,6 +781,10 @@ function fixBell(board, idx, jdx, bell) {
   if (!Array.isArray(bell) && Array.isArray(board[idx][jdx]) || 
       !Array.isArray(bell) && !Array.isArray(board[idx][jdx]) && board[idx][jdx] != bell || 
       Array.isArray(bell) && Array.isArray(board[idx][jdx]) && !compare(bell, board[idx][jdx])) {
+    
+    if(Array.isArray(bell) && bell.length == 1)
+      bell = bell[0];
+        
     board[idx][jdx] = bell;
     return true;
   }
@@ -985,21 +989,27 @@ function takeGuess(puzzle, numberOptions, withPropagation, config) {
 
 function trackBellTillJunction(puzzle, bell, idx, jdx, idxPrev, jdxPrev, direction, withPropagation, config) {
   
-  if(direction*(idx-idxPrev) <= 0)
-    console.log("Things have gone wrong: bad inputs to trackBellTillJunction")
-  
   var puzzleWorking = copyGrid(puzzle);
   
   if(!puzzleWorking.stepsGuessed)
     puzzleWorking.stepsGuessed = [];
 
-  var isChanged = fixBell(puzzleWorking.solution, idxPrev, jdxPrev, bell);
-  if(isChanged)
-    puzzleWorking.stepsGuessed.push({'bell':bell, 'idx':idxPrev, 'jdx':jdxPrev});
-  
-  isChanged = fixBell(puzzleWorking.solution, idx, jdx, bell);
-  if(isChanged)
-    puzzleWorking.stepsGuessed.push({'bell':bell, 'idx':idx, 'jdx':jdx});
+  // Support two uses:
+  // 1) row-to-row (supply idxPrev and jdxPrev)
+  // 2) arbitrary (only supply idx and jdx)
+  var isRowToRow = idxPrev >= 0 && jdxPrev >= 0;
+  if(isRowToRow) {
+    if(direction*(idx-idxPrev) <= 0)
+      console.log("Things have gone wrong: bad inputs to trackBellTillJunction")
+
+    var isChanged = fixBell(puzzleWorking.solution, idxPrev, jdxPrev, bell);
+    if(isChanged)
+      puzzleWorking.stepsGuessed.push({'bell':bell, 'idx':idxPrev, 'jdx':jdxPrev});
+
+    isChanged = fixBell(puzzleWorking.solution, idx, jdx, bell);
+    if(isChanged)
+      puzzleWorking.stepsGuessed.push({'bell':bell, 'idx':idx, 'jdx':jdx});  
+  }
   
   var isValid = true;
   
@@ -1073,7 +1083,7 @@ function trackBellTillJunction(puzzle, bell, idx, jdx, idxPrev, jdxPrev, directi
       }
     }
     
-    if(puzzleWorking.options.palindromicSymmetry) {
+    if(puzzleWorking.options.palindromicSymmetry && isRowToRow) {
       //If this implies a pair of bells are opposites, check if this is possible
       var isPalindromicValid = checkPalindromicSymmetryPossible(puzzleWorking, bell, idxPrev, idx, jdxPrev, jdx, direction);
       if(!isPalindromicValid) {
@@ -1123,44 +1133,46 @@ function trackBellTillJunction(puzzle, bell, idx, jdx, idxPrev, jdxPrev, directi
       }
     }
     
-    var state = formState(puzzleWorking, idxPrev, jdxPrev, idx, jdx, bell, direction);
+    if(isRowToRow) {
+      var state = formState(puzzleWorking, idxPrev, jdxPrev, idx, jdx, bell, direction);
 
-    var placeCount;
-    if(state.jdxs[0] == state.jdxs[1])
-      placeCount = 2;
-    else 
-      placeCount = 1;
-      
-    while (isValid && state.jdxs[3] >= 0 && state.bells[3] >= 0 && state.idxs[3] != idxOrigin) {
-      
-      if(state.jdxs[1] == state.jdxs[2]) {
-        placeCount++;
-      }
-      else {
+      var placeCount;
+      if(state.jdxs[0] == state.jdxs[1])
+        placeCount = 2;
+      else 
         placeCount = 1;
-      }
-      
-      if (puzzleWorking.options.noLongPlaces && placeCount > 2)
-        isValid = false;
-        
-      //Check for long places: need to only make invalid if there's no possibility of leading or lying behind before or after
-      var N = puzzleWorking.numBells;
-      if(puzzleWorking.options.noLongPlaces && placeCount == 2 && state.jdxs[3] >= 0 && state.jdxs[0] >= 0 &&
-        (state.jdxs[1]==1 && !(isPositionPossible(puzzleWorking.solution, state.idxs[0], 0, state.bells[0]) && isPositionPossible(puzzleWorking.solution, state.idxs[3], 0, state.bells[3])) ||
-        state.jdxs[1]==N-2 && !(isPositionPossible(puzzleWorking.solution, state.idxs[0], N-1, state.bells[0]) && isPositionPossible(puzzleWorking.solution, state.idxs[3], N-1, state.bells[3])))) {
-          isValid = false;
-          reasonForFailure = "Bell " + state.bells[1] + " made long places";
+
+      while (isValid && state.jdxs[3] >= 0 && state.bells[3] >= 0 && state.idxs[3] != idxOrigin) {
+
+        if(state.jdxs[1] == state.jdxs[2]) {
+          placeCount++;
         }
-        
-      if (puzzleWorking.options.noLongPlaces) {
-        if (state.bells.slice(1).every(function(b) {return b > 0;}) && (compare(state.jdxs.slice(1), [1,1,2]) || compare(state.jdxs.slice(1), [N-3,N-2,N-2]))) {
-          isValid = false;
-          reasonForFailure = "Bell " + state.bells[1] + " caused another bell to make long places";          
+        else {
+          placeCount = 1;
         }
+
+        if (puzzleWorking.options.noLongPlaces && placeCount > 2)
+          isValid = false;
+
+        //Check for long places: need to only make invalid if there's no possibility of leading or lying behind before or after
+        var N = puzzleWorking.numBells;
+        if(puzzleWorking.options.noLongPlaces && placeCount == 2 && state.jdxs[3] >= 0 && state.jdxs[0] >= 0 &&
+          (state.jdxs[1]==1 && !(isPositionPossible(puzzleWorking.solution, state.idxs[0], 0, state.bells[0]) && isPositionPossible(puzzleWorking.solution, state.idxs[3], 0, state.bells[3])) ||
+          state.jdxs[1]==N-2 && !(isPositionPossible(puzzleWorking.solution, state.idxs[0], N-1, state.bells[0]) && isPositionPossible(puzzleWorking.solution, state.idxs[3], N-1, state.bells[3])))) {
+            isValid = false;
+            reasonForFailure = "Bell " + state.bells[1] + " made long places";
+          }
+
+        if (puzzleWorking.options.noLongPlaces) {
+          if (state.bells.slice(1).every(function(b) {return b > 0;}) && (compare(state.jdxs.slice(1), [1,1,2]) || compare(state.jdxs.slice(1), [N-3,N-2,N-2]))) {
+            isValid = false;
+            reasonForFailure = "Bell " + state.bells[1] + " caused another bell to make long places";          
+          }
+        }
+
+        history.push([state.idxs[3], state.jdxs[3]]);
+        state = updateState(puzzleWorking, state, direction);
       }
-      
-      history.push([state.idxs[3], state.jdxs[3]]);
-      state = updateState(puzzleWorking, state, direction);
     }
   }
   
@@ -1663,4 +1675,18 @@ function checkRowPossible(board, idx, row) {
   for(var jdx=0; jdx<board[0].length; jdx++)
     isOK &= isPositionPossible(board, idx, jdx, row[jdx]);
   return isOK;
+}
+
+function findOpposite(puzzle, bell) {
+  if(!isShiftedSymmetryPoint(puzzle)) {
+    var opposite = puzzle.solution[puzzle.numRows-2][bell-1];
+    if(Array.isArray(opposite))
+      opposite = -1;
+  }
+  else {
+    console.log('Not implemented yet')
+    methodokuError()
+  }
+  
+  return opposite;
 }
