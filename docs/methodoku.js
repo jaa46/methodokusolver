@@ -61,6 +61,11 @@ for(var i=0; i<puzzle.killer.clues.length; i++) {
   var c = puzzle.killer.clues[i];
   grid.rows[c[0]].cells[c[1]].innerText = c[2];
 }
+
+// Hide download link
+var link = document.getElementById('exportlink');
+link.style.display = "none";
+
 }
  
 function buildStartingSolution() {

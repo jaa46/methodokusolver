@@ -279,22 +279,177 @@ function runAllLoadedPuzzles() {
 }
 
 function prepareResultsForDownload() {
-  var textFile = null,
-  makeTextFile = function (text) {
-    var data = new Blob([text], {type: 'text/plain'});
-
-    // If we are replacing a previously generated file we need to
-    // manually revoke the object URL to avoid memory leaks.
-    if (textFile !== null) {
-      window.URL.revokeObjectURL(textFile);
-    }
-
-    textFile = window.URL.createObjectURL(data);
-
-    return textFile;
-  };
-
   var link = document.getElementById('downloadlink');
   link.href = makeTextFile(testResults);
   link.style.display = 'block';
+}
+
+function makeTextFile(text) {
+  var textFile = null;
+  var data = new Blob([text], {type: 'text/plain'});
+
+  // If we are replacing a previously generated file we need to
+  // manually revoke the object URL to avoid memory leaks.
+  if (textFile !== null) {
+    window.URL.revokeObjectURL(textFile);
+  }
+
+  textFile = window.URL.createObjectURL(data);
+
+  return textFile;
+};
+
+function downloadPuzzle() {
+  var text = generatePuzzleText(puzzle);
+  var link = document.getElementById('exportlink');
+  link.href = makeTextFile(text);
+  link.style.display = 'block';
+}
+
+function generatePuzzleText(puzzle) {
+  
+  var text = "";
+  
+  // Add rules
+  text += addRuleSummary(puzzle);
+  
+  text += "\n";
+
+  // Add puzzle definition
+  var symbols = copy(puzzle.start);
+  
+  for(var idx=0; idx<puzzle.numRows; idx++)
+    for(var jdx=0; jdx<puzzle.numBells; jdx++)
+      if(symbols[idx][jdx] == "?" || symbols[idx][jdx] == 0)
+        symbols[idx][jdx] = ".";
+      
+  // Include Killer clues
+  for(var i=0; i<puzzle.killer.clues.length; i++) {
+    var c = puzzle.killer.clues[i];
+    symbols[c[0]][c[1]] = c[2];
+  }
+  
+  for(var idx=0; idx<puzzle.numRows; idx++) {
+    for(var jdx=0; jdx<puzzle.numBells; jdx++)  
+      text += symbols[idx][jdx];
+    text += "\n";
+  }
+  
+  return text;
+}
+
+function addRuleSummary(puzzle) {
+  var text = "";
+  
+  for(var rule in puzzle.options)
+    text += ruleToText(puzzle, rule);
+  
+  // Special cases
+  if(puzzle.options.doubleSymmetry && puzzle.options.palindromicSymmetry)
+    text += "## Double, palindromic symmetry" + "\n" + "# -ds" + "\n";
+  
+  else if(puzzle.options.fullCourse && puzzle.options.allWorkingExceptTreble)
+    text += "## Bells 2-N do the same work\n# -Q$G==2&&$l~~\"1*\"\n";
+  
+  else if(puzzle.options.fullCourse && puzzle.options.twoHuntBells)
+    text += "## Bells 3-N do the same work\n# -Q$G==3&&$l~~\"12*\"\n";
+  
+  // Killer clues
+  for(var idx=0; idx<listKillerColours().length; idx++) {
+    var killerLetter = String.fromCharCode("A".charCodeAt(0) + idx);
+    var fieldName = ["killer" + killerLetter + "Sum"];
+    if(puzzle.options[fieldName] && puzzle.options[fieldName] > 0) {
+      if(idx == 0)
+        text += "\n";
+      text += killerLetter + " += " + puzzle.options["killer" + killerLetter + "Sum"] + "\n";
+    }
+  }
+  
+  return text;
+}
+
+function ruleToText(puzzle, option) {
+  
+  var text = "";
+  
+  if (option == "numberOfLeads" && puzzle.options.numberOfLeads > 0) {
+    text = "## numberOfLeads = " + puzzle.options.numberOfLeads + "\n";
+    text += "# -Q$o==" + puzzle.options.numberOfLeads + "\n";
+  }
+  else if (option == "allWorkingExceptTreble" && puzzle.options.allWorkingExceptTreble) {
+    text = "## numberOfWorkingBells = " + (puzzle.numBells-1) + "\n";
+    text += "# -Q$B-$u==" + (puzzle.numBells-1) + "\n";
+  }
+  else if (option == "numberOfHuntBells" && puzzle.options.numberOfHuntBells > 0) {
+    text = "## numberOfHuntBells = " + puzzle.options.numberOfHuntBells + "\n";
+    text += "# -Q$u====" + puzzle.options.numberOfHuntBells + "\n";
+  }
+  else if (option == "is2OrNLeadEnd" && puzzle.options.is2OrNLeadEnd) {
+    text = "## is2OrNLeadEnd" + "\n";
+    text += "# -m*(12|1" + num2bell(puzzle.numBells) + ")\n";
+  }
+  else if (option == "isNLeadEnd" && puzzle.options.isNLeadEnd) {
+    text = "## isNLeadEnd" + "\n";
+    text += "# -m*(1" + num2bell(puzzle.numBells) + ")\n";
+  }
+  else if (option == "consecutivePlaceLimit" && puzzle.options.consecutivePlaceLimit >= 0) {
+    text = "## consecutivePlaceLimit = " + puzzle.options.consecutivePlaceLimit + "\n";
+    if (puzzle.options.consecutivePlaceLimit == 0)
+      text += "# -j\n";
+    else
+      text += "# -j2\n";
+  }
+  else {
+      var symbol;
+      switch (option) {
+          case "noLongPlaces":
+              symbol = "-p2";
+          break;
+          
+          case "plainBobLeadEnd":
+              symbol = "--pbles";
+          break;
+
+          case "palindromicSymmetry":
+              symbol = "-s";
+          break;
+              
+          case "trueInCourse":
+              symbol = "-Fc";
+          break;
+          
+          case "is2LeadEnd":
+              symbol = "-m*(12)";
+          break;
+
+          case "trebleBob":
+              symbol = "-T";
+          break;
+              
+          case "delight":
+              symbol = "--delight";
+          break;
+              
+          case "surprise":
+              symbol = "-S";
+          break;
+
+          case "atMost2PlacesPerChange":
+              symbol = "-l2";
+          break;
+              
+          case "rightPlace":
+              symbol = "-w";
+          break;
+
+          case "cyclicLeadEnd":
+              symbol = "-c";
+          break;       
+      }
+    
+    if(symbol && puzzle.options[option])
+      text = "## " + option + "\n# " + symbol + "\n";    
+  }
+  
+  return text;
 }
