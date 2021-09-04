@@ -413,7 +413,9 @@ function ruleToText(puzzle, option) {
           case "palindromicSymmetry":
               symbol = "-s";
           break;
-              
+          
+          // TODO: What about trueInLead?
+          
           case "trueInCourse":
               symbol = "-Fc";
           break;
