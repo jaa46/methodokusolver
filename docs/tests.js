@@ -348,11 +348,15 @@ function addRuleSummary(puzzle) {
   // Special cases
   if(puzzle.options.doubleSymmetry && puzzle.options.palindromicSymmetry)
     text += "## Double, palindromic symmetry" + "\n" + "# -ds" + "\n";
+  else if(puzzle.options.doubleSymmetry)
+    text += "## Double symmetry" + "\n" + "# -d" + "\n";
+  else if(puzzle.options.palindromicSymmetry)
+    text += "## Palindromic symmetry" + "\n" + "# -s" + "\n";  
   
-  else if(puzzle.options.fullCourse && puzzle.options.allWorkingExceptTreble)
+  if(puzzle.options.fullCourse && puzzle.options.allWorkingExceptTreble)
     text += "## Bells 2-N do the same work\n# -Q$G==2&&$l~~\"1*\"\n";
   
-  else if(puzzle.options.fullCourse && puzzle.options.twoHuntBells)
+  if(puzzle.options.fullCourse && puzzle.options.twoHuntBells)
     text += "## Bells 3-N do the same work\n# -Q$G==3&&$l~~\"12*\"\n";
   
   // Killer clues
@@ -403,51 +407,65 @@ function ruleToText(puzzle, option) {
   else {
       var symbol;
       switch (option) {
-          case "noLongPlaces":
-              symbol = "-p2";
-          break;
-          
-          case "plainBobLeadEnd":
-              symbol = "--pbles";
-          break;
-
-          case "palindromicSymmetry":
-              symbol = "-s";
-          break;
-          
-          // TODO: What about trueInLead?
-          
-          case "trueInCourse":
-              symbol = "-Fc";
+          case "mirrorSymmetry":
+              symbol = "--mirror";
           break;
           
           case "is2LeadEnd":
               symbol = "-m*(12)";
           break;
-
-          case "trebleBob":
-              symbol = "-T";
+          
+          case "plainBobLeadEnd":
+              symbol = "--pbles";
           break;
-              
-          case "delight":
-              symbol = "--delight";
+          
+          case "cyclicLeadEnd":
+              symbol = "-c";
           break;
-              
-          case "surprise":
-              symbol = "-S";
+          
+          case "trueInLead":
+              symbol = "-Fc";
           break;
-
-          case "atMost2PlacesPerChange":
-              symbol = "-l2";
+          
+          case "trueInCourse":
+              symbol = "-Fc";
+          break;
+          
+          case "noLongPlaces":
+              symbol = "-p2";
           break;
               
           case "rightPlace":
               symbol = "-w";
           break;
-
-          case "cyclicLeadEnd":
-              symbol = "-c";
-          break;       
+          
+          case "atMost2PlacesPerChange":
+              symbol = "-l2";
+          break;
+          
+          case "allDoubleChanges":
+              symbol = "-l1";
+          break;
+          
+          case "allTripleChanges":
+              symbol = "-l1";
+          break;
+          
+          case "noNminus1thPlacesExceptUnderTreble":
+              symbol = "-f";
+          break;
+          
+          case "surprise":
+              symbol = "-S";
+          break;
+          
+          case "delight":
+              symbol = "--delight";
+          break;
+              
+          case "trebleBob":
+              symbol = "-T";
+          break;
       }
     
     if(symbol && puzzle.options[option])
