@@ -920,7 +920,7 @@ class DirectKillerLogic extends Strategy {
   step(puzzle, recursionLevel)
   {
     var isChanged = false;
-    var letters = ["A", "B", "C", "D"];
+    var letters = ["a", "b", "c", "d"];
     
     for(const letter of letters) {
       var clues = puzzle.killer.clues.filter(c => c[2] == letter);
@@ -1239,7 +1239,7 @@ class DoNotMakeBadGuess extends Strategy {
   
   guessKillerClues(puzzle, withPropagation, config) {
     var message = "";
-    var letters = ["A", "B", "C", "D"];
+    var letters = ["a", "b", "c", "d"];
     
     var result = {"isChanged": false, "decision": "", "evidence": []};
 

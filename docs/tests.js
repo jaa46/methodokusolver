@@ -114,9 +114,9 @@ function addPuzzle(text, url) {
       options[line.trim()] = true;
     } 
     else if(line.includes("+=")) {
-      //Parse Killer clue: e.g. "A += 17"
+      //Parse Killer clue: e.g. "a += 17"
       var tokens = line.split("+=");
-      var boxId = "killer" + tokens[0].trim().toUpperCase() + "Sum";
+      var boxId = "killer" + tokens[0].trim().toLowerCase() + "Sum";
       options[boxId] = parseInt(tokens[1].trim());
     }
     
@@ -326,7 +326,8 @@ function generatePuzzleText(puzzle) {
   // Include Killer clues
   for(var i=0; i<puzzle.killer.clues.length; i++) {
     var c = puzzle.killer.clues[i];
-    symbols[c[0]][c[1]] = c[2];
+    if(c[2] >= "a" && c[2] <= "d")
+      symbols[c[0]][c[1]] = c[2];
   }
   
   for(var idx=0; idx<puzzle.numRows; idx++) {
@@ -356,7 +357,7 @@ function addRuleSummary(puzzle) {
   
   // Killer clues
   for(var idx=0; idx<listKillerColours().length; idx++) {
-    var killerLetter = String.fromCharCode("A".charCodeAt(0) + idx);
+    var killerLetter = String.fromCharCode("a".charCodeAt(0) + idx);
     var fieldName = ["killer" + killerLetter + "Sum"];
     if(puzzle.options[fieldName] && puzzle.options[fieldName] > 0) {
       if(idx == 0)

@@ -224,14 +224,14 @@ function applyKillerColours(puzzle) {
   var colours = listKillerColours();
   for(var c=0; c<puzzle.killer.clues.length; c++) {
     var clue = puzzle.killer.clues[c];
-    grid.rows[clue[0]].cells[clue[1]].style.backgroundColor = colours[clue[2].charCodeAt() - "A".charCodeAt()];
+    grid.rows[clue[0]].cells[clue[1]].style.backgroundColor = colours[clue[2].charCodeAt() - "a".charCodeAt()];
   }
 
   var colours = listKillerColours();
-  killerASumLabel.style.backgroundColor  = colours[0];
-  killerBSumLabel.style.backgroundColor  = colours[1];
-  killerCSumLabel.style.backgroundColor  = colours[2];
-  killerDSumLabel.style.backgroundColor  = colours[3]; 
+  killeraSumLabel.style.backgroundColor  = colours[0];
+  killerbSumLabel.style.backgroundColor  = colours[1];
+  killercSumLabel.style.backgroundColor  = colours[2];
+  killerdSumLabel.style.backgroundColor  = colours[3]; 
 }
 
 function listKillerColours() {
@@ -313,7 +313,7 @@ function updateControls() {
 }
 
 function isKillerClue(numBells, text) {
-  return (text.toUpperCase() == "E" || text.toUpperCase() == "O") && numBells < 11 || text.toUpperCase() >= 'A' && text.toUpperCase() <= 'D';
+  return (text.toUpperCase() == "E" || text.toUpperCase() == "O") && numBells < 11 || text.toLowerCase() >= 'a' && text.toLowerCase() <= 'd';
 }
 
 function updatePuzzleFromGrid() {
@@ -343,7 +343,7 @@ function updatePuzzleFromGrid() {
             
             // Check if a Killer clue next
             if(isKillerClue(puzzle.numBells, text)) {
-              puzzle.killer.clues.push([i,j,text.toUpperCase()]);
+              puzzle.killer.clues.push([i,j,text.toLowerCase()]);
               
               if (text == "E" || text == "O")
                 puzzle.start[i][j] = text;
