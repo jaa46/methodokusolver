@@ -187,6 +187,8 @@ else if (line.startsWith("-m*(1") && line != "-m*(12)") {
     line = "isNLeadEnd";
 }
 else
+    // TODO: Handle "-l1" for double/triple changes
+  
     switch (line.trim()) {
         case "-p2":
             line = "noLongPlaces";
