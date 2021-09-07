@@ -227,7 +227,7 @@ else
         break;
 
         case "-j":
-            line = {"name": 'consecutivePlaceLimit', "value": 0};
+            line = {"name": 'consecutivePlaceLimit', "value": 1};
         break;
 
         case "-j2":
@@ -399,9 +399,9 @@ function ruleToText(puzzle, option) {
     text = "## isNLeadEnd" + "\n";
     text += "# -m*(1" + num2bell(puzzle.numBells) + ")\n";
   }
-  else if (option == "consecutivePlaceLimit" && puzzle.options.consecutivePlaceLimit >= 0) {
+  else if (option == "consecutivePlaceLimit" && puzzle.options.consecutivePlaceLimit > 0) {
     text = "## consecutivePlaceLimit = " + puzzle.options.consecutivePlaceLimit + "\n";
-    if (puzzle.options.consecutivePlaceLimit == 0)
+    if (puzzle.options.consecutivePlaceLimit == 1)
       text += "# -j\n";
     else
       text += "# -j2\n";
