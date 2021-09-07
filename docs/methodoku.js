@@ -1130,7 +1130,7 @@ function trackBellTillJunction(puzzle, bell, idx, jdx, idxPrev, jdxPrev, directi
       }
     }
     
-    if (puzzleWorking.options.consecutivePlaceLimit >= 0) {
+    if (puzzleWorking.options.consecutivePlaceLimit > 0) {
       var noConsecutivePlaces = checkConsecutivePlaceLimit(puzzleWorking);
       if(!noConsecutivePlaces) {
         isValid = false;
@@ -1521,7 +1521,7 @@ function checkConsecutivePlaceLimit(puzzle) {
       
       if (info1.isFixed && info2.isFixed && info3.isFixed && info4.isFixed &&
       info1.bell == info2.bell && info3.bell == info4.bell) {
-        if (limit == 0)
+        if (limit == 1)
           isValid = false;
           else if(limit == 2) {
             if(jdx < puzzle.numBells-2) {

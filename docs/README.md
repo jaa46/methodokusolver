@@ -82,8 +82,8 @@ Prevent more than 2 places being made per change. If there are already 2 places 
 *Active if "At most 2 places per change" is specified*
 
 ## ConsecutivePlaceLimit
-Prevents more than the specified number of consecutive (adjacent) places being made. If the limit is 0, then no consecutive places are allowed - in this case if there is a place made, prevent other places being made around it. If the limit is 2, prevent further places being made around a pair of consecutive places.
-*Active if "Limit on number of consecutive places" is set to 0 or 2*
+Prevents more than the specified number of consecutive (adjacent) places being made. If the limit is 1, then no consecutive places are allowed - in this case if there is a place made, prevent other places being made around it. If the limit is 2, prevent further places being made around a pair of consecutive places.
+*Active if "Limit on number of consecutive places" is set to 1 or 2*
 
 ## DoNotMakeBadDecision (recursionLimit=1)
 From a fixed position for a bell where there are multiple choices in the next row, test out each of the options to see if the puzzle becomes inconsistent. If an option becomes inconsistent, remove that option.

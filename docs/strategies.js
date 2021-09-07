@@ -860,7 +860,7 @@ class UpTo2PlacesPerChange extends Strategy {
 
 class ConsecutivePlaceLimit extends Strategy {
   isActive(puzzle) {
-    return puzzle.options.consecutivePlaceLimit >= 0;
+    return puzzle.options.consecutivePlaceLimit > 0;
   }
   step(puzzle) {
     var isChanged = false;
@@ -872,7 +872,7 @@ class ConsecutivePlaceLimit extends Strategy {
         var info1 = isPositionDetermined(puzzle.solution, idx, jdx);
         var info2 = isPositionDetermined(puzzle.solution, idx+1, jdx);
         if(info1.isFixed && info2.isFixed && info1.bell == info2.bell)
-          if(limit == 0) {
+          if(limit == 1) {
             if(jdx > 1) {
               // Ensure no place to the left
               isChanged |= makeBlowsConsistent(puzzle.solution, idx, jdx-2, idx+1, jdx-1);
@@ -904,7 +904,7 @@ class ConsecutivePlaceLimit extends Strategy {
           }
           
         //Prevent places being made in 2nds/N-1st place, as these will cause consecutive places
-        if(limit == 0 && (jdx == 1 || jdx == puzzle.numBells-2) && info1.isFixed)
+        if(limit == 1 && (jdx == 1 || jdx == puzzle.numBells-2) && info1.isFixed)
           isChanged |= removeBell(puzzle.solution, idx+1, jdx, info1.bell);
       } 
     
