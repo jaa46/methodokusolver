@@ -434,7 +434,10 @@ function createNewPuzzle() {
   var treblePath = treblePathSelector.options[treblePathSelector.selectedIndex].value;
   
   numRows++; // user input doesn't include first row of rounds
+
   puzzle = blankPuzzle(numRows, numBells, treblePath);
+  resetPuzzle();
+  updateControls();
   updateGrid(true)
 }
 
