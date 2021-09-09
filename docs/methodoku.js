@@ -294,7 +294,7 @@ function bell2num(i) {
 }
 
 function updateControls() {
-  document.getElementById("numberOfRows").value = puzzle.numRows;
+  document.getElementById("numberOfRows").value = puzzle.numRows - 1; // don't count opening rounds for user
   document.getElementById("numberOfBells").value = puzzle.numBells;
   
   var controls = document.getElementById("optionControls");
@@ -432,6 +432,8 @@ function createNewPuzzle() {
   var numBells = parseInt(document.getElementById("numberOfBells").value);
   var treblePathSelector = document.getElementById("trebleType");
   var treblePath = treblePathSelector.options[treblePathSelector.selectedIndex].value;
+  
+  numRows++; // user input doesn't include first row of rounds
   puzzle = blankPuzzle(numRows, numBells, treblePath);
   updateGrid(true)
 }
