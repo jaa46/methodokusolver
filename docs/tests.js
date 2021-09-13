@@ -387,9 +387,9 @@ function ruleToText(puzzle, option) {
     text = "## numberOfWorkingBells = " + (puzzle.numBells-1) + "\n";
     text += "# -Q$B-$u==" + (puzzle.numBells-1) + "\n";
   }
-  else if (option == "numberOfHuntBells" && puzzle.options.numberOfHuntBells > 0) {
+  else if (option == "numberOfHuntBells" && puzzle.options.numberOfHuntBells >= 0) {
     text = "## numberOfHuntBells = " + puzzle.options.numberOfHuntBells + "\n";
-    text += "# -Q$u====" + puzzle.options.numberOfHuntBells + "\n";
+    text += "# -Q$u==" + puzzle.options.numberOfHuntBells + "\n";
   }
   else if (option == "is2OrNLeadEnd" && puzzle.options.is2OrNLeadEnd) {
     text = "## is2OrNLeadEnd" + "\n";
