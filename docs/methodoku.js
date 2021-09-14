@@ -268,7 +268,7 @@ function buildGrid(rows, cols) {
 }
 
 function num2bell(i) {
-  if (i < 10)
+  if (i > 0 && i < 10)
     return i;
   else if (i == 10)
     return "0";

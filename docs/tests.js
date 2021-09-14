@@ -324,6 +324,8 @@ function generatePuzzleText(puzzle) {
     for(var jdx=0; jdx<puzzle.numBells; jdx++)
       if(symbols[idx][jdx] == "?" || symbols[idx][jdx] == 0)
         symbols[idx][jdx] = ".";
+      else if (typeof(symbols[idx][jdx]) == "number")
+        symbols[idx][jdx] = num2bell(symbols[idx][jdx]);
       
   // Include Killer clues
   for(var i=0; i<puzzle.killer.clues.length; i++) {
