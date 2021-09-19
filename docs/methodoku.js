@@ -605,7 +605,7 @@ var strategies = [new OncePerRow(), new OnlyOneOptionInRow(), new NoJumping(), n
   new WorkingBells(), new AllDoubleChanges(), new AllTripleChanges(), new NoLongPlaces(),
   new NoNminus1thPlacesExceptUnderTreble(), new RightPlace(), new NumberOfHuntBells(), 
   new ApplyPalindromicSymmetry(), new ApplyDoubleSymmetry(), new ApplyMirrorSymmetry(), 
-  new Is2OrNLeadEnd(), new NoShortCycles(), new SurpriseMinor(), new DelightMinor(), new TrebleBobMinor(), 
+  new Is2OrNLeadEnd(), new NoShortCycles(), new Surprise(), new Delight(), new TrebleBob(), 
   new UpTo2PlacesPerChange(), new ConsecutivePlaceLimit(), new DirectKillerLogic(),
   new DoNotMakeBadDecision(false), new DoNotMakeBadGuess(false), 
   new ApplyPalindromicSymmetryFull(), new ApplyDoubleSymmetryFull(), new ApplyMirrorSymmetryFull(), 
@@ -855,6 +855,28 @@ function areBlowsConsistent(board, idx1, jdx1, idx2, jdx2) {
   return intersect(blow1, blow2).length > 0;
 }
 
+function ensurePlace(board, idx1, idx2, place) {
+  //Place is one-indexed
+  return makeBlowsConsistent(board, idx1, place-1, idx2, place-1);
+}
+
+function ensureNoPlace(board, idx1, idx2, place) {
+  //Place is one-indexed
+  var isChanged = false;
+  if(place % 2) {
+    //Odd place not being made - hunting down instead
+    isChanged |= makeBlowsConsistent(board, idx1, place-1, idx2, place-2);
+    isChanged |= makeBlowsConsistent(board, idx1, place-2, idx2, place-1);
+  }
+   else {
+    //Even place not being made - hunting up instead
+    isChanged |= makeBlowsConsistent(board, idx1, place-1, idx2, place);
+    isChanged |= makeBlowsConsistent(board, idx1, place, idx2, place-1);
+   }
+   
+   return isChanged;
+}
+
 function iterateIndex(board, idx, dir) {
   idx += dir;
   if(idx < 0)
@@ -922,7 +944,21 @@ return puzzle.options.twoHuntBells && isPositionPossible(puzzle.solution, idxLH,
 }
 
 function applyTrebleBobTreble(puzzle) {
-var jdxs = [0,1,0,1,2,3,2,3,4,5,4,5,5,4,5,4,3,2,3,2,1,0,1,0,0];
+var jdxs = [];
+var j = 0;
+for(var n=0; n<puzzle.numBells/2; n++) {
+  jdxs.push(j,j+1,j,j+1);
+  j += 2;
+}
+
+j -= 2;
+for(var n=0; n<puzzle.numBells/2; n++) {
+  jdxs.push(j+1,j,j+1,j);
+  j -= 2;
+}
+
+jdxs.push(0);
+
 var treble = 1;
 var isChanged = false;
 for(var idx=0; idx<jdxs.length; idx++)
