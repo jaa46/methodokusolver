@@ -5,6 +5,7 @@
     <script type="text/javascript" src='methodoku.js'> </script>
     <script type="text/javascript" src='tests.js'> </script>
     <script type="text/javascript" src='utilities.js'> </script>
+    <script type="text/javascript" src='InternalPlaceLogic.js'> </script>
 </head>
 <style>
 #status {
@@ -151,13 +152,13 @@ td table td {
 <label class="checkboxlabel">Limit on number of consecutive places</label><br></div>
 
 <div class="checkbox"><input type="checkbox" id="surprise" onclick="updateConfig();" unchecked>
-<label class="checkboxlabel">Surprise Minor</label><br></div>
+<label class="checkboxlabel">Surprise</label><br></div>
 
 <div class="checkbox"><input type="checkbox" id="delight" onclick="updateConfig();" unchecked>
-<label class="checkboxlabel">Delight Minor</label><br></div>
+<label class="checkboxlabel">Delight</label><br></div>
 
 <div class="checkbox"><input type="checkbox" id="trebleBob" onclick="updateConfig();" unchecked>
-<label class="checkboxlabel">Treble-bob Minor</label><br></div>
+<label class="checkboxlabel">Treble-bob</label><br></div>
 
 <div class="checkbox"><input type="number"  class="numberInput" id="numberOfLeads" min="1" onclick="updateConfig();" unchecked>
 <label class="checkboxlabel">Number of leads</label><br></div>

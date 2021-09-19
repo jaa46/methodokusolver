@@ -73,9 +73,9 @@ Applies 2nds or Nths place leadend depending on the options specified. If a spec
 If it's specified that all the working bells follow the same line, make sure there are no short cycles which would result in the course having a shorter number of leads.
 *Active if "Full course" is selected*
 
-## SurpriseMinor, DelightMinor, TrebleBobMinor
-Makes sure the treble treble-bobs. Then ensure the appropriate places are made or not made before and after the treble's 3-4 dodge. In the Delight Minor case, check whether both options are possible - then if only one is possible, apply that place and apply plain-hunting to prevent the other place. 
-*Active if "Surprise Minor", "Delight Minor", or "Treble-bob Minor" are selected and the number of bells is 6* 
+## Surprise, Delight, TrebleBob
+Makes sure the treble treble-bobs. Then ensure the appropriate places are made or not made before and after the treble's internal dodges. 
+*Active if "Surprise", "Delight", or "Treble-bob" is selected and the number of bells is 6, 8, 10 or 12* 
 
 ## UpTo2PlacesPerChange
 Prevent more than 2 places being made per change. If there are already 2 places being made, ensure no other places are made by preventing these other bells from ringing in the same position in the next row.

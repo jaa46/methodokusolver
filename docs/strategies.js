@@ -724,68 +724,61 @@ class NoShortCycles extends Strategy {
   }
 }
 
-class SurpriseMinor extends Strategy {
+class Surprise extends Strategy {
   isActive(puzzle) {
-    return puzzle.numBells == 6 && puzzle.numRows == 25 && puzzle.options.surprise;
+    return puzzle.options.surprise && InternalPlaces.isRelevant(puzzle);
   }
   step(puzzle) {
     var isChanged = false;
     isChanged |= applyTrebleBobTreble(puzzle);
     
-    var idx4ths = [3,4,19,20];
-    var idx3rds = [7,8,15,16];
-
-    //4ths in both locations
-    isChanged |= makeBlowsConsistent(puzzle.solution, idx4ths[0], 3, idx4ths[1], 3);
-    isChanged |= makeBlowsConsistent(puzzle.solution, idx4ths[2], 3, idx4ths[3], 3);
-    //3rds in both locations
-    isChanged |= makeBlowsConsistent(puzzle.solution, idx3rds[0], 2, idx3rds[1], 2);
-    isChanged |= makeBlowsConsistent(puzzle.solution, idx3rds[2], 2, idx3rds[3], 2);
+    var info = InternalPlaces.placeInformation(puzzle);
     
+    for(var p=0; p<info.places.length; p++)
+      isChanged |= ensurePlace(puzzle.solution, info.idxs[p][0], info.idxs[p][1], info.places[p]);
+        
     return isChanged;
   }
 }
 
-class DelightMinor extends Strategy {
+class Delight extends Strategy {
   isActive(puzzle) {
-    return puzzle.numBells == 6 && puzzle.numRows == 25 && puzzle.options.delight;
+    return puzzle.options.delight && InternalPlaces.isRelevant(puzzle);
   }
   step(puzzle) {
     var isChanged = false;
     isChanged |= applyTrebleBobTreble(puzzle);
     
-    var idx4ths = [3,4,19,20];
-    var idx3rds = [7,8,15,16];
+    var placeInfo = InternalPlaces.placeInformation(puzzle);
+    
+    var isPlaceMade = [];
+    for(var p=0; p<placeInfo.places.length; p++) {
+      var info1 = isPositionDetermined(puzzle.solution, placeInfo.idxs[p][0], placeInfo.places[p]-1);
+      var info2 = isPositionDetermined(puzzle.solution, placeInfo.idxs[p][1], placeInfo.places[p]-1);
+      isPlaceMade.push(info1.isFixed > 0 && info2.isFixed > 0 && info1.bell == info2.bell);
+    }
 
-    var is4thsPossible = areBlowsConsistent(puzzle.solution, idx4ths[0], 3, idx4ths[1], 3) &&
-      areBlowsConsistent(puzzle.solution, idx4ths[2], 3, idx4ths[3], 3);
-    var is3rdsPossible = areBlowsConsistent(puzzle.solution, idx3rds[0], 2, idx3rds[1], 2) &&
-      areBlowsConsistent(puzzle.solution, idx3rds[2], 2, idx3rds[3], 2);
-    
-    if(is4thsPossible && !is3rdsPossible) {
-      // Make 4ths
-      isChanged |= makeBlowsConsistent(puzzle.solution, idx4ths[0], 3, idx4ths[1], 3);
-      isChanged |= makeBlowsConsistent(puzzle.solution, idx4ths[2], 3, idx4ths[3], 3);
-      
-      // Ensure hunting in 2-3 instead of 3rds
-      isChanged |= makeBlowsConsistent(puzzle.solution, idx3rds[0], 1, idx3rds[1], 2);
-      isChanged |= makeBlowsConsistent(puzzle.solution, idx3rds[0], 2, idx3rds[1], 1);
-      isChanged |= makeBlowsConsistent(puzzle.solution, idx3rds[2], 1, idx3rds[3], 2);      
-      isChanged |= makeBlowsConsistent(puzzle.solution, idx3rds[2], 2, idx3rds[3], 1);      
+    var isPlaceNotPossible = [];
+    for(var p=0; p<placeInfo.places.length; p++) {
+      isPlaceNotPossible.push(!areBlowsConsistent(puzzle.solution, 
+        placeInfo.idxs[p][0], placeInfo.places[p]-1, 
+        placeInfo.idxs[p][1], placeInfo.places[p]-1));
     }
-    else if(is3rdsPossible && !is4thsPossible) {
-      // Make 3rds
-      isChanged |= makeBlowsConsistent(puzzle.solution, idx3rds[0], 2, idx3rds[1], 2);
-      isChanged |= makeBlowsConsistent(puzzle.solution, idx3rds[2], 2, idx3rds[3], 2);
-      
-      // Ensure hunting in 4-5 instead of 4ths
-      isChanged |= makeBlowsConsistent(puzzle.solution, idx4ths[0], 3, idx4ths[1], 4);
-      isChanged |= makeBlowsConsistent(puzzle.solution, idx4ths[0], 4, idx4ths[1], 3);
-      isChanged |= makeBlowsConsistent(puzzle.solution, idx4ths[2], 3, idx4ths[3], 4);      
-      isChanged |= makeBlowsConsistent(puzzle.solution, idx4ths[2], 4, idx4ths[3], 3);      
+
+    if(isPlaceMade.filter(Boolean).length == isPlaceMade.length-1) {
+      //If there's only one place left that it's possible to not be made,
+      // ensure it's not made      
+      var idx = isPlaceMade.indexOf(false);
+      isChanged |= ensureNoPlace(puzzle.solution, placeInfo.idxs[idx][0], placeInfo.idxs[idx][1], placeInfo.places[idx]);
     }
-    
-    if(!is3rdsPossible && !is4thsPossible) {
+
+    if(isPlaceNotPossible.filter(Boolean).length == isPlaceNotPossible.length-1) {
+      //If there's only one place that can be made, ensure it's made
+      var idx = isPlaceNotPossible.indexOf(false);
+      isChanged |= ensurePlace(puzzle.solution, placeInfo.idxs[idx][0], placeInfo.idxs[idx][1], placeInfo.places[idx]);
+    }
+
+    if(isPlaceNotPossible.every(Boolean) || isPlaceMade.every(Boolean)) {
       console.log("Things have gone wrong with delight places");
       methodokuError();
     }
@@ -794,28 +787,18 @@ class DelightMinor extends Strategy {
   }
 }
 
-class TrebleBobMinor extends Strategy {
+class TrebleBob extends Strategy {
   isActive(puzzle) {
-    return puzzle.numBells == 6 && puzzle.numRows == 25 && puzzle.options.trebleBob;
+    return puzzle.options.trebleBob && InternalPlaces.isRelevant(puzzle);
   }
   step(puzzle) {
     var isChanged = false;
     isChanged |= applyTrebleBobTreble(puzzle);
     
-    var idx4ths = [3,4,19,20];
-    var idx3rds = [7,8,15,16];
-
-    // Ensure hunting in 2-3 instead of 3rds
-    isChanged |= makeBlowsConsistent(puzzle.solution, idx3rds[0], 1, idx3rds[1], 2);
-    isChanged |= makeBlowsConsistent(puzzle.solution, idx3rds[0], 2, idx3rds[1], 1);
-    isChanged |= makeBlowsConsistent(puzzle.solution, idx3rds[2], 1, idx3rds[3], 2);      
-    isChanged |= makeBlowsConsistent(puzzle.solution, idx3rds[2], 2, idx3rds[3], 1);      
-
-    // Ensure hunting in 4-5 instead of 4ths
-    isChanged |= makeBlowsConsistent(puzzle.solution, idx4ths[0], 3, idx4ths[1], 4);
-    isChanged |= makeBlowsConsistent(puzzle.solution, idx4ths[0], 4, idx4ths[1], 3);
-    isChanged |= makeBlowsConsistent(puzzle.solution, idx4ths[2], 3, idx4ths[3], 4);      
-    isChanged |= makeBlowsConsistent(puzzle.solution, idx4ths[2], 4, idx4ths[3], 3);
+    var info = InternalPlaces.placeInformation(puzzle);
+    
+    for(var p=0; p<info.places.length; p++)
+      isChanged |= ensureNoPlace(puzzle.solution, info.idxs[p][0], info.idxs[p][1], info.places[p]);
     
     return isChanged;
   }
