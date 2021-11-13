@@ -187,9 +187,17 @@ else if (line.startsWith("-m*(1") && line != "-m*(12)") {
     line = "isNLeadEnd";
 }
 else
-    // TODO: Handle "-l1" for double/triple changes
   
     switch (line.trim()) {
+
+        case "-l1":
+            line = ["allDoubleChanges", "allTripleChanges"];
+        break;
+
+        case "-f":
+            line = "noNminus1thPlacesExceptUnderTreble";
+        break;
+
         case "-p2":
             line = "noLongPlaces";
         break;
@@ -201,7 +209,11 @@ else
         case "-s":
             line = "palindromicSymmetry";
         break;
-            
+        
+        case "-d":
+            line = "doubleSymmetry";
+        break;
+
         case "-ds":
             line = ["doubleSymmetry", "palindromicSymmetry"];
         break;
@@ -356,7 +368,7 @@ function addRuleSummary(puzzle) {
     text += "## Double symmetry" + "\n" + "# -d" + "\n";
   else if(puzzle.options.palindromicSymmetry)
     text += "## Palindromic symmetry" + "\n" + "# -s" + "\n";  
-  
+    
   if(puzzle.options.fullCourse && puzzle.options.allWorkingExceptTreble)
     text += "## Bells 2-N do the same work\n# -Q$G==2&&$l~~\"1*\"\n";
   
@@ -389,7 +401,7 @@ function ruleToText(puzzle, option) {
     text = "## numberOfWorkingBells = " + (puzzle.numBells-1) + "\n";
     text += "# -Q$B-$u==" + (puzzle.numBells-1) + "\n";
   }
-  else if (option == "numberOfHuntBells" && puzzle.options.numberOfHuntBells >= 0) {
+  else if (option == "  " && puzzle.options.numberOfHuntBells >= 0) {
     text = "## numberOfHuntBells = " + puzzle.options.numberOfHuntBells + "\n";
     text += "# -Q$u==" + puzzle.options.numberOfHuntBells + "\n";
   }
