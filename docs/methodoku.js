@@ -603,7 +603,7 @@ function hideReasoning() {
 
 var strategies = [new OncePerRow(), new OnlyOneOptionInRow(), new NoJumping(), new FillSquares(), new RemoveDeadEnds(), 
   new WorkingBells(), new AllDoubleChanges(), new AllTripleChanges(), new NoLongPlaces(),
-  new NoNminus1thPlacesExceptUnderTreble(), new RightPlace(), new NumberOfHuntBells(), 
+  new NoNminus1thPlacesExceptUnderTreble(), new RightPlace(), new RightPlaceAboveTreble(), new NumberOfHuntBells(), 
   new ApplyPalindromicSymmetry(), new ApplyDoubleSymmetry(), new ApplyMirrorSymmetry(), 
   new Is2OrNLeadEnd(), new NoShortCycles(), new Surprise(), new Delight(), new TrebleBob(), 
   new UpTo2PlacesPerChange(), new ConsecutivePlaceLimit(), new DirectKillerLogic(),
