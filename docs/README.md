@@ -46,8 +46,11 @@ Prevents a bell making places in e.g. 7ths place in major, unless it's below the
 *Active if "No N-1ths places except under treble" is selected*
  
 ## RightPlace
-Ensures a method is right place, but making sure a cross notation is possible every other change. This means each pair of bells in 1-2, 3-4,... must be consistent with each other.
+Ensures a method is right place, by making sure a cross notation is possible every other change. This means each pair of bells in 1-2, 3-4,... must be consistent with each other.
 *Active if "Right place" is selected*
+
+## RightPlaceAboveTheTreble
+As for RightPlace, but only applied in positions above the treble in rows where the treble is fixed. *Active if "Right place above the treble" is selected*
 
 ## NumberOfHuntBells
 If the number of hunt bells has been specified, and there are already this many hunt bells (bells which are in their starting position in the final row), prevent any further hunt bells.

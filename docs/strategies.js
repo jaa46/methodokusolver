@@ -404,6 +404,32 @@ class RightPlace extends Strategy {
   }
 }
 
+class RightPlaceAboveTreble extends Strategy {
+  isActive(puzzle) {
+    return puzzle.options.rightPlaceAboveTreble
+  }
+  step(puzzle) {
+    var isChanged = false;
+    
+    var treble = 1;
+    for(var idx=0; idx<puzzle.numRows-1; idx+=2) {
+      
+      var infoTrebleFixed = isFixedInRow(puzzle.solution, treble, idx);
+      var infoTrebleFixedNext = isFixedInRow(puzzle.solution, treble, idx+1);
+      
+      if(infoTrebleFixed.isFixed && infoTrebleFixedNext.isFixed) {
+        // Assume the treble is right-hunting
+        var jdxAbove = Math.max(infoTrebleFixed.jdx, infoTrebleFixedNext.jdx) + 1;
+        for(var jdx=jdxAbove; jdx<puzzle.numBells-1; jdx+=2) {
+          isChanged |= makeBlowsConsistent(puzzle.solution, idx, jdx, idx+1, jdx+1);
+          isChanged |= makeBlowsConsistent(puzzle.solution, idx, jdx+1, idx+1, jdx);
+        }
+      }
+    }
+    return isChanged;
+  }
+}
+
 class NumberOfHuntBells extends Strategy {
   isActive(puzzle) {
     return puzzle.options.numberOfHuntBells > 0
