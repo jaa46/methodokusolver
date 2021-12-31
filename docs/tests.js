@@ -238,6 +238,10 @@ else
             line = "atMost2PlacesPerChange";
         break;
             
+        case "-f":
+            line = "noNminus1thPlacesExceptUnderTreble";
+        break;
+        
         case "-w":
             line = "rightPlace";
         break;
