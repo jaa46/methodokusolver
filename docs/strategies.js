@@ -760,8 +760,10 @@ class Surprise extends Strategy {
     
     var info = InternalPlaces.placeInformation(puzzle);
     
+    //TODO: For stages above minor, check there's a place made for each row i.e. if there's only one possible place left, apply it
     for(var p=0; p<info.places.length; p++)
-      isChanged |= ensurePlace(puzzle.solution, info.idxs[p][0], info.idxs[p][1], info.places[p]);
+      if (puzzle.numBells == 6)
+        isChanged |= ensurePlace(puzzle.solution, info.idxs[p][0], info.idxs[p][1], info.places[p]);
         
     return isChanged;
   }
@@ -775,36 +777,43 @@ class Delight extends Strategy {
     var isChanged = false;
     isChanged |= applyTrebleBobTreble(puzzle);
     
+    //Identify the relevant changes
+    // N.B. this only returns the indices from the first halflead if palindromic symmetry is active
     var placeInfo = InternalPlaces.placeInformation(puzzle);
+
+    //Check whether any internal places are made at the relevant changes
+    var isInternalPlaceMade = [];
+    for(var p=0; p<placeInfo.places.length; p++)
+      isInternalPlaceMade.push(checkWhetherInternalPlacesMade(puzzle, placeInfo.idxs[p][0], placeInfo.idxs[p][1])); 
+
+    //See whether having no internal places is possible at each of the relevant changes
+    var isAllPlainHuntingPossible = [];
+    for(var p=0; p<placeInfo.places.length; p++)
+      isAllPlainHuntingPossible.push(checkNoInternalPlacesPossible(puzzle, placeInfo.idxs[p][0], placeInfo.idxs[p][1]));
+
+    //If there's only one change which can be plain hunting, ensure it happens
+    if(isAllPlainHuntingPossible.filter(Boolean).length == 1) {
+      var idx = isAllPlainHuntingPossible.indexOf(1);
+      isChanged |= ensureNoInternalPlaces(puzzle, placeInfo.idxs[idx][0], placeInfo.idxs[idx][1]);
+    }
+
+    if(puzzle.numBells == 6) {
+      // TODO: Extend this for higher stages
+      var isInternalPlaceNotPossible = [];
+      for(var p=0; p<placeInfo.places.length; p++) {
+        isInternalPlaceNotPossible.push(!areBlowsConsistent(puzzle.solution, 
+          placeInfo.idxs[p][0], placeInfo.places[p]-1, 
+          placeInfo.idxs[p][1], placeInfo.places[p]-1));
+      }
+      //If it's minor, and there's only one place that can be made, ensure it's made
+      if(isInternalPlaceNotPossible.filter(Boolean).length == isInternalPlaceNotPossible.length-1) {
+        var idx = isInternalPlaceNotPossible.indexOf(false);
+        isChanged |= ensurePlace(puzzle.solution, placeInfo.idxs[idx][0], placeInfo.idxs[idx][1], placeInfo.places[idx]);
+      }
+    }
     
-    var isPlaceMade = [];
-    for(var p=0; p<placeInfo.places.length; p++) {
-      var info1 = isPositionDetermined(puzzle.solution, placeInfo.idxs[p][0], placeInfo.places[p]-1);
-      var info2 = isPositionDetermined(puzzle.solution, placeInfo.idxs[p][1], placeInfo.places[p]-1);
-      isPlaceMade.push(info1.isFixed > 0 && info2.isFixed > 0 && info1.bell == info2.bell);
-    }
-
-    var isPlaceNotPossible = [];
-    for(var p=0; p<placeInfo.places.length; p++) {
-      isPlaceNotPossible.push(!areBlowsConsistent(puzzle.solution, 
-        placeInfo.idxs[p][0], placeInfo.places[p]-1, 
-        placeInfo.idxs[p][1], placeInfo.places[p]-1));
-    }
-
-    if(isPlaceMade.filter(Boolean).length == isPlaceMade.length-1) {
-      //If there's only one place left that it's possible to not be made,
-      // ensure it's not made      
-      var idx = isPlaceMade.indexOf(false);
-      isChanged |= ensureNoPlace(puzzle.solution, placeInfo.idxs[idx][0], placeInfo.idxs[idx][1], placeInfo.places[idx]);
-    }
-
-    if(isPlaceNotPossible.filter(Boolean).length == isPlaceNotPossible.length-1) {
-      //If there's only one place that can be made, ensure it's made
-      var idx = isPlaceNotPossible.indexOf(false);
-      isChanged |= ensurePlace(puzzle.solution, placeInfo.idxs[idx][0], placeInfo.idxs[idx][1], placeInfo.places[idx]);
-    }
-
-    if(isPlaceNotPossible.every(Boolean) || isPlaceMade.every(Boolean)) {
+    //Throw an error if it's not possible for there to be no internal places at one of the changes
+    if(!isAllPlainHuntingPossible.some(Boolean)) {
       console.log("Things have gone wrong with delight places");
       methodokuError();
     }
@@ -824,7 +833,7 @@ class TrebleBob extends Strategy {
     var info = InternalPlaces.placeInformation(puzzle);
     
     for(var p=0; p<info.places.length; p++)
-      isChanged |= ensureNoPlace(puzzle.solution, info.idxs[p][0], info.idxs[p][1], info.places[p]);
+      isChanged |= ensureNoInternalPlaces(puzzle, info.idxs[p][0], info.idxs[p][1]);
     
     return isChanged;
   }

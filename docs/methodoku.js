@@ -860,21 +860,46 @@ function ensurePlace(board, idx1, idx2, place) {
   return makeBlowsConsistent(board, idx1, place-1, idx2, place-1);
 }
 
-function ensureNoPlace(board, idx1, idx2, place) {
-  //Place is one-indexed
+function ensureNoInternalPlaces(puzzle, idx1, idx2) {
+  //Apply 1N place notation
+  
   var isChanged = false;
-  if(place % 2) {
-    //Odd place not being made - hunting down instead
-    isChanged |= makeBlowsConsistent(board, idx1, place-1, idx2, place-2);
-    isChanged |= makeBlowsConsistent(board, idx1, place-2, idx2, place-1);
+  
+  isChanged |= ensurePlace(puzzle.solution, idx1, idx2, 1);
+  
+  for(var place=2; place<puzzle.numBells-1; place+=2) {
+    isChanged |= makeBlowsConsistent(puzzle.solution, idx1, place-1, idx2, place);
+    isChanged |= makeBlowsConsistent(puzzle.solution, idx1, place, idx2, place-1);
   }
-   else {
-    //Even place not being made - hunting up instead
-    isChanged |= makeBlowsConsistent(board, idx1, place-1, idx2, place);
-    isChanged |= makeBlowsConsistent(board, idx1, place, idx2, place-1);
-   }
    
-   return isChanged;
+  isChanged |= ensurePlace(puzzle.solution, idx1, idx2, puzzle.numBells);
+   
+  return isChanged;
+}
+
+function checkNoInternalPlacesPossible(puzzle, idx1, idx2) {
+  //Check 1N place notation possible
+  var tf = true;
+  tf &= canPairCross(puzzle, idx1, 0, idx2, 0);
+  tf &= canPairCross(puzzle, idx1, puzzle.numBells-1, idx2, puzzle.numBells-1);
+
+  for(var jdx=1; jdx<puzzle.numBells-2; jdx+=2)
+    tf &= canPairCross(puzzle, idx1, jdx, idx2, jdx+1);
+  
+  return tf;
+}
+
+function checkWhetherInternalPlacesMade(puzzle, idx1, idx2) {
+  //Check whether internal places are made
+  var tf = false;
+
+  for(var jdx=1; jdx<puzzle.numBells-2; jdx++) {
+    var info1 = isPositionDetermined(puzzle.solution, idx1, jdx);
+    var info2 = isPositionDetermined(puzzle.solution, idx2, jdx);
+    tf |= info1.isFixed && info2.isFixed && info1.bell == info2.bell;
+  }
+  
+  return tf;
 }
 
 function iterateIndex(board, idx, dir) {
