@@ -1529,8 +1529,8 @@ function checkCourseLength(puzzle) {
   return accumulator + currentValue 
   }, 0);
   if(cycleSums < puzzle.numBells)
-    //Inconclusive
-    isValid = true;
+    //Check every cycle completed so far has a length which is a factor of the number of leads
+    isValid = cycleLengths.every(d => puzzle.options.numberOfLeads/d == Math.floor(puzzle.options.numberOfLeads/d));
   else {
     //Course length is the lowest common multiple of the cycles
     var cycleLCM = cycleLengths.reduce(function (accumulator, currentValue) {
