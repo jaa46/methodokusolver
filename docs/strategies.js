@@ -280,14 +280,25 @@ class AllTripleChanges extends Strategy {
 }
 
 class NoLongPlaces extends Strategy {
+  constructor(includeOverLeadEnds) {
+    super();
+    this.includeOverLeadEnds = includeOverLeadEnds;
+  }
+  
+  includeOverLeadEnds = true;
+
   isActive(puzzle) {
-    return puzzle.options.noLongPlaces;
+    return puzzle.options.noLongPlaces && this.includeOverLeadEnds || puzzle.options.noLongPlacesExceptOverLeadEnd && !this.includeOverLeadEnds;
   }
   step(puzzle) {
     var isChanged = false;
     
+    var rowLimits = [0, puzzle.numRows];
+    if (!this.includeOverLeadEnds)
+      rowLimits = [1, puzzle.numRows-2];
+    
     //If a place has been made, prevent the same bell making further places
-    for(var idx=0; idx<puzzle.numRows; idx++)
+    for(var idx=rowLimits[0]; idx<rowLimits[1]; idx++)
       for(var jdx=0; jdx<puzzle.numBells; jdx++) {
         var info = isPositionDetermined(puzzle.solution, idx, jdx);
 
@@ -310,7 +321,7 @@ class NoLongPlaces extends Strategy {
       }
     
     //Prevent a bell ringing in a particular blow if it would result in long places
-    for(var idx=0; idx<puzzle.numRows; idx++)
+    for(var idx=rowLimits[0]; idx<rowLimits[1]; idx++)
       for(var jdx=0; jdx<puzzle.numBells; jdx++) {
         var info = isPositionDetermined(puzzle.solution, idx, jdx);
         

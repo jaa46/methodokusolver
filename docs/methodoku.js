@@ -602,7 +602,7 @@ function hideReasoning() {
 }
 
 var strategies = [new OncePerRow(), new OnlyOneOptionInRow(), new NoJumping(), new FillSquares(), new RemoveDeadEnds(), 
-  new WorkingBells(), new AllDoubleChanges(), new AllTripleChanges(), new NoLongPlaces(),
+  new WorkingBells(), new AllDoubleChanges(), new AllTripleChanges(), new NoLongPlaces(true), new NoLongPlaces(false),
   new NoNminus1thPlacesExceptUnderTreble(), new RightPlace(), new RightPlaceAboveTreble(), new NumberOfHuntBells(), 
   new ApplyPalindromicSymmetry(), new ApplyDoubleSymmetry(), new ApplyMirrorSymmetry(), 
   new Is2OrNLeadEnd(), new NoShortCycles(), new Surprise(), new Delight(), new TrebleBob(), 
